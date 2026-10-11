@@ -1,6 +1,6 @@
 #include <vulkan/vulkan_raii.hpp> // Vulkan-Hpp의 RAII 버전 헤더
-
 #include <iostream> // "iostream 파일을 이 소스에 포함시켜라"
+#include <cstring> // 문자열 비교
 
 class ComputeApplication 
 {

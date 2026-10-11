@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include <cstring> // 문자열 비교
+
 class ComputeApplication
 {
 public:
@@ -13,6 +15,8 @@ public:
 
 private:
     // TODO: validation layer 이름과 debug messenger 멤버를 추가합니다.
+    // 02-validation-layer ## 1
+    static constexpr const char* validationLayer = "VK_LAYER_KHRONOS_validation";
 
     vk::raii::Context context;
     vk::raii::Instance instance = nullptr;
@@ -21,9 +25,32 @@ private:
     {
         createInstance();
         // TODO: 초기화 결과를 반환하고 debug messenger를 생성합니다.
+
     }
 
     // TODO: 레이어 지원 확인, 콜백, messenger 생성, 메시지 제출 함수를 추가합니다.
+    bool checkValidationLayerSupport()
+    {
+        const auto layers = context.enumerateInstanceLayerProperties();
+        for (const auto& layer : layers)
+        {
+            if (std::strcmp(layer.layerName, validationLayer) == 0)
+            {
+                return true;
+            }
+        }
+
+        std::cerr << "Required layer not found: " << validationLayer << '\n';
+        return false;
+    }
+
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+    VkDebugUtilsMessageTypeFlagsEXT type,
+    const VkDebugUtilsMessengerCallbackDataEXT* callbackData,
+    void*)
+    {
+    }
 
     void createInstance()
     {
