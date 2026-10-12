@@ -6,6 +6,8 @@
 #include <iostream>
 #include <optional>
 #include <utility>
+#include <array>
+#include <cstddef>
 
 class ComputeApplication
 {
@@ -23,6 +25,16 @@ private:
     static constexpr const char* validationLayer = "VK_LAYER_KHRONOS_validation";
 
     // TODO: 버퍼 크기와 BufferResource 구조체를 추가합니다.
+    // 05-buffers-memory.md : # 01
+    static_assert(sizeof(float) == 4);
+    static constexpr std::uint32_t elementCount = 8;
+    static constexpr vk::DeviceSize bufferSize = sizeof(float) * elementCount;
+
+    struct BufferResource
+    {
+        vk::raii::DeviceMemory memory = nullptr;
+        vk::raii::Buffer buffer = nullptr;
+    };
 
     vk::raii::Context context;
     vk::raii::Instance instance = nullptr;
@@ -32,6 +44,10 @@ private:
     vk::raii::Device device = nullptr;
     vk::raii::Queue computeQueue = nullptr;
     // TODO: inputA, inputB, output 멤버를 추가합니다.
+    // 05-buffers-memory.md : ## 02
+    BufferResource inputA;
+    BufferResource inputB;
+    BufferResource output;
 
     bool initVulkan()
     {
@@ -39,7 +55,8 @@ private:
         return createInstance()
             && setupDebugMessenger()
             && pickPhysicalDevice()
-            && createLogicalDevice();
+            && createLogicalDevice()
+            && createStorageBuffers();
     }
 
     bool checkValidationLayerSupport()
@@ -197,6 +214,114 @@ private:
     }
     // TODO: createStorageBuffers(), createBuffer(), findMemoryType(),
     // writeAndVerifyBuffer()를 추가합니다.
+    bool createStorageBuffers()
+    {
+        const std::array buffers = {&inputA, &inputB, &output};
+        for (auto* buffer : buffers)
+        {
+            if (!createBuffer(bufferSize, *buffer))
+            {
+                return false;
+            }
+        }
+
+        std::array<float, elementCount> valuesA{};
+        std::array<float, elementCount> valuesB{};
+        const std::array<float, elementCount> initialOutput{};
+        for (std::uint32_t i = 0; i < elementCount; ++i)
+        {
+            valuesA[i] = static_cast<float>(i);
+            valuesB[i] = 10.0f + static_cast<float>(i);
+        }
+
+        if (!writeAndVerifyBuffer(inputA, valuesA, "Input A")
+            || !writeAndVerifyBuffer(inputB, valuesB, "Input B")
+            || !writeAndVerifyBuffer(output, initialOutput, "Output (initial)"))
+        {
+            return false;
+        }
+
+        std::cout << "Host-visible storage buffers ready: " << buffers.size()
+                  << " x " << bufferSize << " bytes.\n"
+                  << "CPU write/readback verified. No GPU dispatch yet.\n";
+        return true;
+    }
+
+    bool createBuffer(vk::DeviceSize size, BufferResource& resource)
+    {
+        vk::BufferCreateInfo bufferInfo{};
+        bufferInfo.size = size;
+        bufferInfo.usage = vk::BufferUsageFlagBits::eStorageBuffer; // enumStorageBuffer
+        bufferInfo.sharingMode = vk::SharingMode::eExclusive; // sharingMode : 큐 패밀리에서 자원을 공유하는 방식
+
+        resource.buffer = vk::raii::Buffer(device, bufferInfo); // C API: vkCreateBuffer
+        const auto requirements = resource.buffer.getMemoryRequirements(); // C API: vkGetBufferMemoryRequirements
+        const auto properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+
+        std::uint32_t memoryTypeIndex = 0;
+        if (!findMemoryType(requirements.memoryTypeBits, properties, memoryTypeIndex))
+        {
+            return false;
+        }
+
+        vk::MemoryAllocateInfo allocationInfo{};
+        allocationInfo.allocationSize = requirements.size;
+        allocationInfo.memoryTypeIndex = memoryTypeIndex;
+
+        resource.memory = vk::raii::DeviceMemory(device, allocationInfo); // C API: vkAllocateMemory
+        resource.buffer.bindMemory(*resource.memory, 0); // C API: vkBindBufferMemory
+
+        std::cout << "Buffer memory: size " << requirements.size
+                  << ", alignment " << requirements.alignment
+                  << ", type " << memoryTypeIndex << '\n';
+        return true;
+    }
+
+    bool findMemoryType(std::uint32_t typeFilter, vk::MemoryPropertyFlags properties, std::uint32_t& typeIndex)
+    {
+        const auto memoryProperties = physicalDevice.getMemoryProperties();
+        for (std::uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
+        {
+            const bool allowed = (typeFilter & (1u << i)) != 0;
+            const bool hasProperties = (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties;
+
+            if (allowed && hasProperties)
+            {
+                typeIndex = i;
+                return true;
+            }
+        }
+        std::cerr << "No compatible HOST_VISIBLE | HOST_COHERENT memory type found.\n";
+        return false;
+    }
+
+    bool writeAndVerifyBuffer(BufferResource& resource,
+                              const std::array<float, elementCount>& values,
+                              const char* label)
+    {
+        void* mapped = resource.memory.mapMemory(0, bufferSize); // C API: vkMapMemory
+        std::memcpy(mapped, values.data(), static_cast<std::size_t>(bufferSize));
+        resource.memory.unmapMemory(); // C API: vkUnmapMemory
+
+        std::array<float, elementCount> readback{};
+        mapped = resource.memory.mapMemory(0, bufferSize); // C API: vkMapMemory
+        std::memcpy(readback.data(), mapped, static_cast<std::size_t>(bufferSize));
+        resource.memory.unmapMemory(); // C API: vkUnmapMemory
+
+        if (readback != values)
+        {
+            std::cerr << label << ": CPU data verification failed.\n";
+            return false;
+        }
+
+        std::cout << label << ':';
+        for (float value : readback)
+        {
+            std::cout << ' ' << value;
+        }
+        std::cout << '\n';
+        return true;
+    }
 };
 
 int main()
