@@ -26,22 +26,22 @@ git push     # 작업 끝난 후
 
 ## 현재 위치 (2026-10-12 기준)
 
-**03. Physical devices 완료 → 다음: 04. Logical device**
+**04. Logical device 완료 → 다음: 05. Buffers & memory**
 
-- 03장: `examples/03-physical-devices/main.cpp` 빌드·실행 확인 (Tesla T4, compute queue family 0 선택)
+- 04장: `examples/04-logical-device/main.cpp` 빌드·실행 확인 (`Logical device created.` / `Compute queue ready: family 0, queue 0.`)
 - 02장은 콜백 작성 단계에서 멈춘 채 넘어옴 (나중에 돌아가서 마무리)
-- 다음: [04. Logical device](../examples/04-logical-device/README.md) (폴더는 이미 있음)
+- 다음: [05. Buffers & memory](../examples/05-buffers-memory/README.md)
 
-### 03장 진행 상황
+### 04장 진행 상황
 
-- [x] 장치 선택 준비하기: `physicalDevice`, `computeQueueFamilyIndex` 멤버, `<cstdint>`/`<optional>`/`<utility>` 추가
-- [x] 물리적 디바이스 목록 가져오기 (`enumeratePhysicalDevices()`, `empty()`, 반복문 밖 실패 처리)
-- [x] API 버전 확인하기 (`getProperties()`, `continue`)
-- [x] 컴퓨트 큐 패밀리 찾기 (`findComputeQueueFamily`, `std::optional`, 비트 AND `&`)
-- [x] 조건을 만족하는 장치 저장하기 (`std::move(candidate)`, `*queueFamily`)
-- [x] 선택한 장치 정보 확인하기 (`printDeviceInfo()`)
-- [x] 초기화 순서에 연결하기 (`initVulkan()`에 `pickPhysicalDevice()` 추가)
-- [x] 빌드와 실행 (타깃 `physical_devices`)
+- [x] 디바이스와 큐를 보관할 자리 만들기 (`device`, `computeQueue` 멤버)
+- [x] 생성할 큐 지정하기 (`queuePriority`, `vk::DeviceQueueCreateInfo`)
+- [x] 사용할 기능과 생성 정보 연결하기 (`vk::PhysicalDeviceFeatures`, `vk::DeviceCreateInfo`)
+- [x] 디바이스를 만들고 큐 가져오기 (`vk::raii::Device`, `vk::raii::Queue`)
+- [x] 초기화 순서에 연결하기 (`initVulkan()`에 `createLogicalDevice()` 추가)
+- [x] 빌드와 실행 (타깃 `logical_device_example`)
+
+남은 자잘한 것: `createLogicalDevice()`의 주석 `// 큐 생성 정보 구조체의 개수.`가 `vk::DeviceCreateInfo createInfo{};` 줄에 붙어 있음 → 아래 `queueCreateInfoCount = 1;` 줄로 옮기기
 
 ## 완료한 장
 
@@ -51,23 +51,25 @@ git push     # 작업 끝난 후
 | 01. Instance | ✅ | 빌드·실행 확인 (`Instance created.` / `Instance destroyed.`) |
 | 02. Validation layers | ⏸ 미완 | 콜백 작성 단계에서 멈춤. 03장으로 먼저 넘어감 |
 | 03. Physical devices | ✅ | 빌드·실행 확인 (`Selected physical device: Tesla T4`) |
+| 04. Logical device | ✅ | 빌드·실행 확인 (`Logical device created.`) |
 
 ## 빌드 명령 (Linux)
 
 ```sh
 cd examples/<장 폴더>
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physical_devices
+cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physical_devices, 04: logical_device_example
 ./build/main
 ```
 
-타깃 이름은 각 장의 `CMakeLists.txt`에 있는 `add_executable(이름 ...)`에서 확인합니다.
+타깃 이름은 각 장의 `CMakeLists.txt`에 있는 `add_executable(이름 ...)`에서 확인합니다. **반드시 그 장 폴더에서** 실행합니다 (다른 장 폴더의 `build/`는 그 장 타깃만 앎 → `No rule to make target`).
 
 ## 공부 노트
 
 - [01-instance.md](01-instance.md): 포인터, 구조체와 변수, struct와 class, 필드, 파이썬과 C++ 변수의 차이, 멤버 변수와 지역 변수, 타입
 - [02-validation-layers.md](02-validation-layers.md): constexpr, `const char*`
 - [03-physical-devices.md](03-physical-devices.md): `!`로 실패 먼저 거르기(early return), Context, `vk::raii::Context context;` 읽는 법, `auto`, `std::optional`과 `const ... &`, `std::move()`, 빌드 결과 해석
+- [04-logical-device.md](04-logical-device.md): `{}` vs `()`(most vexing parse), 괄호 세 종류, `&`로 주소 넘기기, 큐 우선순위, `createLogicalDevice` 흐름, 큐 패밀리와 `vulkaninfo`로 확인하기, 빌드 결과
 
 노트에 아직 정리하지 않은, 대화에서 다룬 주제:
 
@@ -87,7 +89,7 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 
 ## Claude에게 이어서 부탁할 때
 
-> `cpp_study/PROGRESS.md` 읽고 다음 장(04)부터 이어서 도와줘.
+> `cpp_study/PROGRESS.md` 읽고 다음 장(05)부터 이어서 도와줘.
 
 - 파이썬은 익숙하고 C++은 처음 배우는 중입니다. 파이썬과 비교하는 설명을 선호합니다.
 - 코드는 README를 보며 직접 채웁니다. 정답 코드를 대신 써 주기보다 문법 설명과 실수 지적을 원합니다.
