@@ -26,11 +26,11 @@ git push     # 작업 끝난 후
 
 ## 현재 위치 (2026-10-12 기준)
 
-**03. Physical devices 완료 → 다음 장(04) 시작 전**
+**03. Physical devices 완료 → 다음: 04. Logical device**
 
 - 03장: `examples/03-physical-devices/main.cpp` 빌드·실행 확인 (Tesla T4, compute queue family 0 선택)
 - 02장은 콜백 작성 단계에서 멈춘 채 넘어옴 (나중에 돌아가서 마무리)
-- 다음: `git pull upstream main`으로 원본에 04장이 올라왔는지 확인 후 시작
+- 다음: [04. Logical device](../examples/04-logical-device/README.md) (폴더는 이미 있음)
 
 ### 03장 진행 상황
 
