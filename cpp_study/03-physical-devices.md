@@ -117,6 +117,10 @@ context = Context()           # 객체 생성
 
 ## 03. auto
 
+auto는 오른쪽 값을 보고 타입을 추측하는 문법이에요.
+
+auto properties = candidate.getProperties();  // 오른쪽을 보면 타입을 알 수 있음 → OK
+
 auto physicalDevices = instance.enumeratePhysicalDevices();
 └타입┘ └─ 변수 이름 ─┘   └──────── 함수 호출 ────────┘
 
@@ -130,3 +134,119 @@ auto physicalDevices = instance.enumeratePhysicalDevices();
 std::vector<vk::raii::PhysicalDevice> physicalDevices = instance.enumeratePhysicalDevices();
 
 auto라고 쓰면 컴파일러가 "오른쪽 함수가 돌려주는 값을 보니 이 타입이구나" 하고 알아서 채워줘요. 타입이 길거나 뻔할 때 많이 써요.
+
+## 04. std::optional, const ... &
+┌────────────────────────────────────┬────────────────────────────────────────────────────────────────┐
+│                조각                │                               뜻                               │
+├────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ static                             │ 객체(this)의 멤버 변수를 쓰지 않는 함수예요. 받은 candidate만  │
+│                                    │ 보고 일해요. 파이썬의 @staticmethod와 같아요.                  │
+├────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ std::optional<std::uint32_t>       │ 반환 타입이에요. "0 이상의 정수가 있거나, 없거나" 둘 중 하나를 │
+│                                    │  돌려줘요.                                                     │
+├────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ findComputeQueueFamily             │ 함수 이름이에요. "컴퓨트 큐 패밀리 찾기"라는 뜻이에요.         │
+├────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ const vk::raii::PhysicalDevice&    │ 매개변수예요. 검사할 GPU 하나를 받아요.                        │
+│ candidate                          │                                                                │
+└────────────────────────────────────┴────────────────────────────────────────────────────────────────┘
+
+std::optional
+
+파이썬으로 치면 -> int | None이에요.
+
+def find_compute_queue_family(candidate) -> int | None:
+    ...
+    return 2      # 찾음
+    return None   # 못 찾음
+
+C++에서는 int 자리에 None을 그냥 넣을 수 없어요. 그래서 "값이 없을 수도 있다"를 표현하려면 optional로 감싸야 해요. 못 찾았을 때는 return std::nullopt;라고 써요. nullopt가 파이썬의 None 역할이에요.
+
+const ... &
+
+- & (참조): GPU 객체를 복사하지 않고 원본을 빌려서 봐요.
+- const: 빌려 보기만 하고 바꾸지 않겠다는 약속이에요.
+- 합치면 "읽기 전용으로 빌려 보기"예요. 파이썬은 원래 객체를 이렇게 넘기지만, C++은 아무것도 안 붙이면 통째로 복사하기 때문에 이렇게 명시해 줘요.
+
+정리
+
+"GPU 하나를 읽기 전용으로 받아서, 컴퓨트 명령을 처리할 수 있는 큐 패밀리의 번호를 찾으면 그 번호를, 못 찾으면 '없음'을 돌려주는 함수"예요.
+
+## 05. std::move()
+ physicalDevice = std::move(candidate);: 후보 GPU를 멤버 변수로 옮겨 담아요. 복사 대신 이사를 시키는 거예요. 반복문이 끝나면 physicalDevices 목록은 사라지지만, 옮겨 둔 physicalDevice는 남아요.
+
+  너가 말한 이 부분 좀 더 자세히 설명해줘
+
+자세히 설명할게요. 그 전에 제가 한 말 중 하나를 바로잡을게요. physicalDevices 목록은 반복문이 끝날 때가 아니라 pickPhysicalDevice() 함수가 끝날 때 사라져요. 함수 안에서 만든 지역 변수라서요.
+
+1. 왜 멤버 변수에 담아야 하나: 수명
+
+bool pickPhysicalDevice()
+{
+    auto physicalDevices = ...;   // 지역 변수: 함수 안에서 태어남
+    for (auto& candidate : physicalDevices) { ... }
+    return ...;
+}                                 // ← 여기서 physicalDevices와 안의 GPU들이 전부 정리됨
+
+C++은 { } 블록이 끝나면 그 안에서 만든 변수를 즉시 정리해요.
+파이썬도 함수가 끝나면 지역 변수는 사라지잖아요. 다만 파이썬은 다른 곳에서 참조하고 있으면 객체가 살아남지만, C++은 블록 끝에서 무조건 정리돼요.
+
+그래서 고른 GPU를 함수가 끝난 뒤에도 쓰려면, 함수 밖에 있는 멤버 변수 physicalDevice(32줄)로 옮겨 놔야 해요. 파이썬으로 치면 self.physical_device = candidate예요.
+
+2. = 의 차이: 파이썬 vs C++
+
+self.physical_device = candidate   # 파이썬: 같은 객체에 이름표 하나 더 붙이기
+
+physicalDevice = candidate;              // C++: 내용을 복사해서 새로 하나 만들기
+physicalDevice = std::move(candidate);   // C++: 내용을 옮기기 (이사)
+
+파이썬의 =는 항상 "이름표 붙이기"예요. 반면 C++의 =는 기본이 복사예요. 그래서 "복사하지 말고 옮겨라"라고 하고 싶을 때 std::move를 써요.
+
+3. 옮기면(move) 무슨 일이 생기나
+
+move 전                         move 후
+candidate      → [GPU 핸들]     candidate      → (빈 상태, nullptr)
+physicalDevice → (비어 있음)     physicalDevice → [GPU 핸들]
+
+- 내용물(GPU 핸들)이 candidate에서 physicalDevice로 넘어가요.
+- candidate는 빈 껍데기가 돼요. 그러니 move 다음에는 candidate를 쓰면 안 돼요. 바로 return true;로 끝내니까 이 코드에서는 문제없어요.
+- 함수가 끝나면서 목록이 정리될 때 빈 껍데기만 정리되고, 진짜 핸들은 physicalDevice에 안전하게 남아요.
+
+4. 솔직하게: 여기서는 복사해도 동작해요
+
+앞에서 헤더를 확인했을 때 vk::raii::PhysicalDevice는 복사도 허용되고 크기도 작았어요. 그래서 이 줄은 physicalDevice = candidate;로 써도 돌아가요.
+
+그래도 move를 쓰는 이유는 이거예요.
+- 습관: vk::raii::Instance, vk::raii::Device 같은 다른 RAII 객체는 복사가 금지돼 있어서 move만 돼요. 이 튜토리얼 전체에서 같은 방식으로 쓰려는 거예요.
+- 의도 표현: "이 후보는 이제 쓸 일이 없으니 멤버로 넘긴다"는 뜻이 코드에 드러나요.
+
+▎ 한 줄 요약: 함수가 끝나면 사라질 후보 GPU를, 계속 살아 있는 멤버 변수로 이사시키는 것이에요.
+
+✻ Churned for 19s · done 1:06 PM
+
+❯ 왜 굳이 다른 객체로 옮기는거지? 그냥 candidate 계속 쓰면 안돼?
+⧉ Selected 1 lines from main.cpp in Visual Studio Code
+
+안 돼요. candidate는 pickPhysicalDevice() 안에서만 존재하는 이름이기 때문이에요.
+
+나중에 다른 함수들도 이 GPU가 필요해요.
+- printDeviceInfo(): 고른 GPU 정보 출력 (이번 장)
+- 다음 장들: 논리 장치(Device) 만들기, 메모리 할당하기 등
+
+그런데 이 함수들에서는 candidate가 보이지 않아요.
+
+class App:
+    def pick_physical_device(self):
+        for candidate in devices:
+            ...
+            return True         # candidate는 여기서 끝
+
+    def print_device_info(self):
+        print(candidate)        # ❌ NameError: 다른 함수의 지역 변수
+        print(self.physical_device)  # ✅ 멤버 변수는 어디서나 보임
+
+C++도 똑같아요.
+- candidate: 반복문 안에서만 쓰는 임시 이름 (지역 변수)
+- physicalDevice: 클래스 전체가 같이 쓰는 보관함 (멤버 변수)
+
+그래서 "후보 중에 합격한 걸 보관함에 넣어 둔다"는 게 physicalDevice = std::move(candidate);예요. 같은 일을 하는 computeQueueFamilyIndex = *queueFamily;도 지역 변수 queueFamily를 멤버 변수로 옮겨 담는 거예요.

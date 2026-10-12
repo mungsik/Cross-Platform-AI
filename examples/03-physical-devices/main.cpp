@@ -31,7 +31,25 @@ private:
     // TODO: 물리적 디바이스와 큐 패밀리 인덱스 멤버를 추가합니다.
     vk::raii::PhysicalDevice physicalDevice = nullptr;
     std::uint32_t computeQueueFamilyIndex = 0;
-    
+
+    // 03-physical-devices.md : ## 4.    
+    static std::optional<std::uint32_t> findComputeQueueFamily(
+        const vk::raii::PhysicalDevice& candidate)
+    {
+        const auto queueFamilies = candidate.getQueueFamilyProperties();
+
+        for (std::uint32_t index = 0; index < queueFamilies.size(); ++index)
+        {
+            const auto& family = queueFamilies[index];
+
+            if (family.queueCount > 0 && (family.queueFlags & vk::QueueFlagBits::eCompute))
+            {
+                return index;
+            }
+        }
+        return std::nullopt;
+    }
+
     bool pickPhysicalDevice()
     {
         // 03-physical-devices.md : ## 03.
@@ -41,17 +59,35 @@ private:
             std::cerr << "No Vulkan physical devices found.\n"; // cerr : character error
             return false;
         }
-        for (auto& candidate : physicalDevices)
+        for (auto& candidate : physicalDevices) // "physicalDevices(GPU 목록)에 있는 장치를 하나씩 꺼내서 candidate(후보)라는 이름으로 부르겠다"
         {
-            std::cerr << "No Vulkan 1.3 pyhsical device with a compute queue family found.\n";
-            return false;
+            const auto properties = candidate.getProperties();
+            if (properties.apiVersion < VK_API_VERSION_1_3)
+            {
+                continue;
+            }
+
+            const auto queueFamily = findComputeQueueFamily(candidate);
+            if (!queueFamily)
+            {
+                continue;
+            }
+            // 03-Physical-devices.md : ## 05.
+            physicalDevice = std::move(candidate);
+            computeQueueFamilyIndex = *queueFamily; // '*'는 optional 상자 안의 실제 숫자를 꺼내는 기호.
+            printDeviceInfo();
+
+            return true;
         }
+
+        std::cerr << "No Vulkan 1.3 physical device with a compute queue family found.\n";
+        return false;
     }
 
     bool initVulkan()
     {
         // TODO: pickPhysicalDevice()를 초기화 순서에 추가합니다.
-        return createInstance() && setupDebugMessenger();
+        return createInstance() && setupDebugMessenger() && pickPhysicalDevice();
     }
 
     bool checkValidationLayerSupport()
@@ -144,6 +180,32 @@ private:
     }
 
     // TODO: findComputeQueueFamily(), pickPhysicalDevice(), printDeviceInfo()를 추가합니다.
+    void printDeviceInfo()
+    {
+        const auto properties = physicalDevice.getProperties();
+        std::cout << "Selected physical device: " << properties.deviceName << '\n' << "Device type: " << vk::to_string(properties.deviceType) << '\n';
+        std::cout << "Device API version: "
+            << VK_API_VERSION_MAJOR(properties.apiVersion) << '.'
+            << VK_API_VERSION_MINOR(properties.apiVersion) << '.'
+            << VK_API_VERSION_PATCH(properties.apiVersion) << '\n';
+        const auto queueFamilies = physicalDevice.getQueueFamilyProperties(); // C API: vkGetPhysicalDeviceQueueFamilyProperties
+    
+        std::cout << "Compute queue family index: " << computeQueueFamilyIndex << '\n'
+            << "Queues in selected family: " << queueFamilies[computeQueueFamilyIndex].queueCount << '\n';
+    
+        const auto features = physicalDevice.getFeatures(); // C API: vkGetPhysicalDeviceFeatures
+        std::cout << "shaderFloat64 supported (not enabled): " << (features.shaderFloat64 ? "yes" : "no") << '\n';
+
+        // 연산에 사용할 수 있는 크기의 한계
+        const auto& limits = properties.limits;
+        std::cout << "maxComputeWorkGroupCount: " << limits.maxComputeWorkGroupCount[0] << ", "
+            << limits.maxComputeWorkGroupCount[1] << ", " << limits.maxComputeWorkGroupCount[2] << '\n'
+            << "maxComputeWorkGroupSize: " << limits.maxComputeWorkGroupSize[0] << ", "
+            << limits.maxComputeWorkGroupSize[1] << ", " << limits.maxComputeWorkGroupSize[2] << '\n';
+
+        std::cout << "maxComputeWorkGroupInvocations: " << limits.maxComputeWorkGroupInvocations << '\n'
+          << "maxStorageBufferRange: " << limits.maxStorageBufferRange << " bytes\n";
+    }
 };
 
 int main()

@@ -26,29 +26,22 @@ git push     # 작업 끝난 후
 
 ## 현재 위치 (2026-10-12 기준)
 
-**03. Physical devices → "물리적 디바이스 목록 가져오기" 섹션 마무리 → "API 버전 확인하기"**
+**03. Physical devices 완료 → 다음 장(04) 시작 전**
 
-- 파일: `examples/03-physical-devices/main.cpp`
-- 가이드: `examples/03-physical-devices/README.md` 30줄부터 (다음 섹션은 73줄)
-- 02장은 콜백 작성 단계에서 멈춘 채 03장으로 넘어옴 (03장 `main.cpp`에는 02장 완성 코드가 이미 들어 있음)
+- 03장: `examples/03-physical-devices/main.cpp` 빌드·실행 확인 (Tesla T4, compute queue family 0 선택)
+- 02장은 콜백 작성 단계에서 멈춘 채 넘어옴 (나중에 돌아가서 마무리)
+- 다음: `git pull upstream main`으로 원본에 04장이 올라왔는지 확인 후 시작
 
 ### 03장 진행 상황
 
 - [x] 장치 선택 준비하기: `physicalDevice`, `computeQueueFamilyIndex` 멤버, `<cstdint>`/`<optional>`/`<utility>` 추가
-- [ ] **물리적 디바이스 목록 가져오기** ← 거의 끝. 아래 "고칠 것" 먼저
-  - [x] `pickPhysicalDevice()` 틀, `enumeratePhysicalDevices()`, `empty()` 검사
-  - [x] `for (auto& candidate : physicalDevices)` 반복문
-- [ ] API 버전 확인하기 (`getProperties()`, `continue`)
-- [ ] 컴퓨트 큐 패밀리 찾기 (`findComputeQueueFamily`, `std::optional`)
-- [ ] 조건을 만족하는 장치 저장하기 (`std::move(candidate)`)
-- [ ] 선택한 장치 정보 확인하기
-- [ ] 초기화 순서에 연결하기 (`initVulkan()`에 `pickPhysicalDevice()` 추가)
-- [ ] 빌드와 실행
-
-### 다음에 시작할 때 먼저 고칠 것
-
-1. **에러 출력과 `return false;`가 `for` 반복문 안에 들어가 있음.** README 66줄: 반복문의 닫는 중괄호 `}` **아래**(반복문 밖)로 옮겨야 함. 지금은 첫 GPU를 보자마자 실패로 끝남.
-2. 에러 메시지 오타: `pyhsical` → `physical`
+- [x] 물리적 디바이스 목록 가져오기 (`enumeratePhysicalDevices()`, `empty()`, 반복문 밖 실패 처리)
+- [x] API 버전 확인하기 (`getProperties()`, `continue`)
+- [x] 컴퓨트 큐 패밀리 찾기 (`findComputeQueueFamily`, `std::optional`, 비트 AND `&`)
+- [x] 조건을 만족하는 장치 저장하기 (`std::move(candidate)`, `*queueFamily`)
+- [x] 선택한 장치 정보 확인하기 (`printDeviceInfo()`)
+- [x] 초기화 순서에 연결하기 (`initVulkan()`에 `pickPhysicalDevice()` 추가)
+- [x] 빌드와 실행 (타깃 `physical_devices`)
 
 ## 완료한 장
 
@@ -57,14 +50,14 @@ git push     # 작업 끝난 후
 | 00. 환경 설정 | ✅ | `env_check` 빌드·실행 확인 |
 | 01. Instance | ✅ | 빌드·실행 확인 (`Instance created.` / `Instance destroyed.`) |
 | 02. Validation layers | ⏸ 미완 | 콜백 작성 단계에서 멈춤. 03장으로 먼저 넘어감 |
-| 03. Physical devices | 🔄 진행 중 | 위 체크리스트 참고 |
+| 03. Physical devices | ✅ | 빌드·실행 확인 (`Selected physical device: Tesla T4`) |
 
 ## 빌드 명령 (Linux)
 
 ```sh
 cd examples/<장 폴더>
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --target <타깃 이름>   # 01: instance_example
+cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physical_devices
 ./build/main
 ```
 
@@ -74,7 +67,7 @@ cmake --build build --target <타깃 이름>   # 01: instance_example
 
 - [01-instance.md](01-instance.md): 포인터, 구조체와 변수, struct와 class, 필드, 파이썬과 C++ 변수의 차이, 멤버 변수와 지역 변수, 타입
 - [02-validation-layers.md](02-validation-layers.md): constexpr, `const char*`
-- [03-physical-devices.md](03-physical-devices.md): `!`로 실패 먼저 거르기(early return), Context, `vk::raii::Context context;` 읽는 법, `auto`
+- [03-physical-devices.md](03-physical-devices.md): `!`로 실패 먼저 거르기(early return), Context, `vk::raii::Context context;` 읽는 법, `auto`, `std::optional`과 `const ... &`, `std::move()`
 
 노트에 아직 정리하지 않은, 대화에서 다룬 주제:
 
@@ -88,10 +81,13 @@ cmake --build build --target <타깃 이름>   # 01: instance_example
 - (03장 대화) `::`는 항상 "~ 안의", 변수 이름은 띄어쓰기 뒤 / 클래스 이름(대문자)과 변수 이름(소문자)
 - (03장 대화) auto 쓸 때와 안 쓸 때(멤버 변수엔 auto 불가), `auto&` vs `const auto&`
 - CMake: `-S`/`-B`, configure와 build, 타깃(`add_executable`), `CMakeLists.txt` 자동 탐색
+- (03장 후반 대화) 함수 매개변수·반환 타입엔 auto 대신 타입 명시, auto 타입은 컴파일러가 헤더 선언으로 앎(VS Code 마우스 오버로 확인)
+- (03장 후반 대화) C 스타일 for문 `for (초기; 조건; ++i)`, `&&`(논리) vs `&`(비트) 플래그 검사, `std::nullopt`, `*optional`
+- (03장 후반 대화) 지역 변수 수명(블록 `}`에서 정리) vs 멤버 변수, 디버깅용 `std::cout` 찍기
 
 ## Claude에게 이어서 부탁할 때
 
-> `cpp_study/PROGRESS.md` 읽고 03장 "다음에 시작할 때 먼저 고칠 것"부터 이어서 도와줘.
+> `cpp_study/PROGRESS.md` 읽고 다음 장(04)부터 이어서 도와줘.
 
 - 파이썬은 익숙하고 C++은 처음 배우는 중입니다. 파이썬과 비교하는 설명을 선호합니다.
 - 코드는 README를 보며 직접 채웁니다. 정답 코드를 대신 써 주기보다 문법 설명과 실수 지적을 원합니다.
