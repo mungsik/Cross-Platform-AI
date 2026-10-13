@@ -8,6 +8,7 @@
 #include <optional>
 #include <utility>
 // TODO: <vector> 헤더를 추가합니다.
+#include <vector>
 
 class ComputeApplication
 {
@@ -46,6 +47,8 @@ private:
     BufferResource output;
     vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
     // TODO: descriptorPool과 descriptorSets 멤버를 추가합니다.
+    vk::raii::DescriptorPool descriptorPool = nullptr;
+    std::vector<vk::raii::DescriptorSet> descriptorSets;
 
     bool initVulkan()
     {
@@ -55,7 +58,9 @@ private:
             && pickPhysicalDevice()
             && createLogicalDevice()
             && createStorageBuffers()
-            && createDescriptorSetLayout();
+            && createDescriptorSetLayout()
+            && createDescriptorPool()
+            && createDescriptorSets();
     }
 
     bool checkValidationLayerSupport()
@@ -326,6 +331,79 @@ private:
         return true;
     }
     // TODO: createDescriptorPool(), createDescriptorSets() 함수를 추가합니다.
+    bool createDescriptorPool()
+    {
+        vk::DescriptorPoolSize poolSize{};
+        poolSize.type = vk::DescriptorType::eStorageBuffer;
+        poolSize.descriptorCount = 3;
+
+        vk::DescriptorPoolCreateInfo poolInfo{};
+        poolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
+        poolInfo.maxSets = 1;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = &poolSize;
+        descriptorPool = vk::raii::DescriptorPool(device, poolInfo); // C API: vkCreateDescriptorPool
+
+        std::cout << "Descriptor pool created: max sets " << poolInfo.maxSets << '\n';
+
+        for (std::uint32_t i = 0; i < poolInfo.poolSizeCount; ++i)
+        {
+            const auto& capacity = poolInfo.pPoolSizes[i];
+            std::cout << "  " << vk::to_string(capacity.type)
+                    << ": " << capacity.descriptorCount << " descriptors\n";
+        }
+        return true;
+    }
+
+    bool createDescriptorSets()
+    {
+        const vk::DescriptorSetLayout layout = *descriptorSetLayout; // RAII 상자에서 맨 layout 핸들을 꺼냄
+
+        vk::DescriptorSetAllocateInfo allocInfo{}; // 셋 할당 주문서
+        allocInfo.descriptorPool = *descriptorPool; // 이 풀(창고)에서 꺼냄
+        allocInfo.descriptorSetCount = 1; // 셋 1개
+        allocInfo.pSetLayouts = &layout; // 셋이 따를 layout 핸들의 주소 (셋 개수만큼의 배열)
+        descriptorSets = device.allocateDescriptorSets(allocInfo); // C API: vkAllocateDescriptorSets
+
+        std::array<vk::DescriptorBufferInfo, 3> bufferInfos{}; // 각 칸이 가리킬 버퍼와 영역
+        bufferInfos[0].buffer = *inputA.buffer;
+        bufferInfos[1].buffer = *inputB.buffer;
+        bufferInfos[2].buffer = *output.buffer;
+        for (auto& bufferInfo : bufferInfos)
+        {
+            bufferInfo.offset = 0; // 버퍼 처음부터
+            bufferInfo.range = bufferSize; // 32바이트 전체
+        }
+
+        std::array<vk::WriteDescriptorSet, 3> writes{}; // 셋에 써 넣을 내용 3개 (칸마다 하나)
+        for (std::uint32_t i = 0; i < writes.size(); ++i)
+        {
+            writes[i].dstSet = *descriptorSets[0]; // 갱신할 셋
+            writes[i].dstBinding = i; // 그 셋의 i번 칸
+            writes[i].dstArrayElement = 0; // 칸 안 배열의 첫 원소 (칸마다 1개뿐)
+            writes[i].descriptorType = vk::DescriptorType::eStorageBuffer; // 06장 layout과 맞춤
+            writes[i].descriptorCount = 1;
+            writes[i].pBufferInfo = &bufferInfos[i]; // i번 칸 = bufferInfos[i]의 버퍼
+        }
+
+        device.updateDescriptorSets(writes, {}); // C API: vkUpdateDescriptorSets (데이터 복사가 아니라 참조 연결)
+
+        std::cout << "Descriptor sets updated: " << descriptorSets.size() << '\n';
+
+        for (const auto& write : writes)
+        {
+            std::cout << "Binding " << write.dstBinding << ": "
+                      << vk::to_string(write.descriptorType) << ", "
+                      << write.descriptorCount << " descriptors\n";
+            for (std::uint32_t i = 0; i < write.descriptorCount; ++i)
+            {
+                const auto& info = write.pBufferInfo[i];
+                std::cout << "  Buffer " << static_cast<VkBuffer>(info.buffer)
+                          << ", offset " << info.offset << ", range " << info.range << " bytes\n";
+            }
+        }
+        return true;
+    }
 };
 
 int main()

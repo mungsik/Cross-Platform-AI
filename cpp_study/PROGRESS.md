@@ -41,14 +41,16 @@ b 존(`asia-northeast3-b`)에 T4 재고가 없어(STOCKOUT) 켜지지 않아서,
 
 ## 현재 위치 (2026-10-13 기준)
 
-**06. Descriptor set layout 완료 → 다음: 07. Descriptor sets**
+**07. Descriptor pool과 sets 완료 → 다음: 08장 (저장소에 아직 없음, `git pull upstream main`으로 확인)**
 
+- 07장: `examples/07-descriptor-sets/main.cpp` 빌드·실행 확인 (풀 max sets 1 / StorageBuffer 3개, 바인딩 0·1·2가 각각 다른 버퍼 핸들, range 32 bytes, 검증 레이어 경고 없음)
+- 07장: `<vector>`, 멤버, `createDescriptorPool()`은 직접 채움. `createDescriptorSets()` 전체와 `initVulkan()` 연결은 Claude가 채움 → 코드 읽으며 복습 필요 (특히 `pSetLayouts = &layout`, `for (auto& ...)`의 `&`, `pBufferInfo = &bufferInfos[i]`)
+- 06·07장 실행 결과 터미널 캡처 제출하기 (README 요구사항)
 - 06장: `examples/06-descriptor-layout/main.cpp` 빌드·실행 확인 (`Descriptor set layout created: 3 bindings.`, 검증 레이어 경고 없음)
 - 06장은 README 보며 직접 채움 (바인딩 3개 반복문, `DescriptorSetLayoutCreateInfo`, `initVulkan()` 연결)
-- 06장 실행 결과 터미널 캡처 제출하기 (README 요구사항)
 - 05장 후반(`createBuffer()`의 메모리 할당·연결부터 `writeAndVerifyBuffer()`, `createStorageBuffers()`, `initVulkan()` 연결까지)은 Claude가 채움 → 코드 읽으며 복습 필요
 - 02장은 콜백 작성 단계에서 멈춘 채 넘어옴 (나중에 돌아가서 마무리)
-- 다음: [07. Descriptor sets](../examples/07-descriptor-sets/README.md) (06의 양식대로 셋을 만들고 0/1/2번 칸에 `inputA`/`inputB`/`output` 실제 연결)
+- 다음: 08장이 올라오면 이어서 (셰이더 모듈 → 파이프라인 → 커맨드 버퍼·dispatch → 제출·대기 → `output` 읽기 순서로 예상)
 
 ## 완료한 장
 
@@ -61,13 +63,14 @@ b 존(`asia-northeast3-b`)에 T4 재고가 없어(STOCKOUT) 켜지지 않아서,
 | 04. Logical device | ✅ | 빌드·실행 확인 (`Logical device created.`) |
 | 05. Buffer와 memory | ✅ | 빌드·실행 확인 (`CPU write/readback verified.`) |
 | 06. Descriptor set layout | ✅ | 빌드·실행 확인 (`Descriptor set layout created: 3 bindings.`) |
+| 07. Descriptor pool과 sets | ✅ | 빌드·실행 확인 (`Descriptor sets updated: 1`). 후반은 Claude가 채움 |
 
 ## 빌드 명령 (Linux)
 
 ```sh
 cd examples/<장 폴더>
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physical_devices, 04: logical_device_example, 05: buffers_memory_example, 06: descriptor_layout_example
+cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physical_devices, 04: logical_device_example, 05: buffers_memory_example, 06: descriptor_layout_example, 07: descriptor_sets_example
 ./build/main
 ```
 
@@ -98,10 +101,11 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 - (03장 후반 대화) C 스타일 for문 `for (초기; 조건; ++i)`, `&&`(논리) vs `&`(비트) 플래그 검사, `std::nullopt`, `*optional`
 - (03장 후반 대화) 지역 변수 수명(블록 `}`에서 정리) vs 멤버 변수, 디버깅용 `std::cout` 찍기
 - (04~05장 대화) CPU가 GPU에 일을 시키는 구조와 Queue 활용 흐름(커맨드 버퍼 → submit → fence), 논리 장치, Vulkan이란(Khronos 표준, CUDA·Metal 비교), 크로스 플랫폼 조건과 기기별 최적화, Vulkan으로 AI 모델 실행(llama.cpp, ncnn 등)
+- (07장 대화) `#include <vector>`와 `std::vector`(파이썬 list, 길이 가변) vs `std::array`(고정), descriptor pool(셋을 떼어 주는 창고, 칸당 count vs 풀 전체 count), Vulkan 핸들(번호표, opaque, `vk::Buffer` vs `vk::raii::Buffer`), `*`의 세 가지(포인터 역참조·`*optional`·`*raii`, 연산자 오버로딩), descriptor는 "설명서"가 아니라 자원 위치 쪽지(LayoutBinding = 칸 규칙과 구분), 만들기 → 연결하기 → 계산기 조립 → 실행 큰 흐름
 
 ## Claude에게 이어서 부탁할 때
 
-> `cpp_study/PROGRESS.md` 읽고 다음 장(07)부터 이어서 도와줘.
+> `cpp_study/PROGRESS.md` 읽고 다음 장(08)부터 이어서 도와줘.
 
 - 파이썬은 익숙하고 C++은 처음 배우는 중입니다. 파이썬과 비교하는 설명을 선호합니다.
 - 코드는 README를 보며 직접 채웁니다. 정답 코드를 대신 써 주기보다 문법 설명과 실수 지적을 원합니다.
