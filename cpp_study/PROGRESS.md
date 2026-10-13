@@ -76,6 +76,11 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 
 타깃 이름은 각 장의 `CMakeLists.txt`에 있는 `add_executable(이름 ...)`에서 확인합니다. **반드시 그 장 폴더에서** 실행합니다 (다른 장 폴더의 `build/`는 그 장 타깃만 앎 → `No rule to make target`).
 
+## 스터디 질문
+
+- [1주차 질문](../question/week1-assignments-Q.md) / [질문+답변 한 파일](../question/week1-assignments-A.md): Queue·QueueFamily, 버퍼·메모리·`bindMemory`, 메모리 속성(T4 `vulkaninfo` 근거), map/memcpy/unmap, 네 가지 타입 설정(예시 5개), descriptor 상황 1~5
+- 답변 중 메모리 장벽, 커맨드 버퍼 재녹화, `CopyDescriptorSet`, 질문 5 예시 3(틀렸을 때 결과)은 아직 튜토리얼에서 안 배운 내용 → Vulkan 사양 기준으로 Claude가 정리, 직접 실행 확인은 안 함
+
 ## 공부 노트
 
 - [01-instance.md](01-instance.md): 포인터, 구조체와 변수, struct와 class, 필드, 파이썬과 C++ 변수의 차이, 멤버 변수와 지역 변수, 타입
@@ -103,6 +108,7 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 - (03장 후반 대화) 지역 변수 수명(블록 `}`에서 정리) vs 멤버 변수, 디버깅용 `std::cout` 찍기
 - (04~05장 대화) CPU가 GPU에 일을 시키는 구조와 Queue 활용 흐름(커맨드 버퍼 → submit → fence), 논리 장치, Vulkan이란(Khronos 표준, CUDA·Metal 비교), 크로스 플랫폼 조건과 기기별 최적화, Vulkan으로 AI 모델 실행(llama.cpp, ncnn 등)
 - (07장 대화) `#include <vector>`와 `std::vector`(파이썬 list, 길이 가변) vs `std::array`(고정), descriptor pool(셋을 떼어 주는 창고, 칸당 count vs 풀 전체 count), Vulkan 핸들(번호표, opaque, `vk::Buffer` vs `vk::raii::Buffer`), `*`의 세 가지(포인터 역참조·`*optional`·`*raii`, 연산자 오버로딩), descriptor는 "설명서"가 아니라 자원 위치 쪽지(LayoutBinding = 칸 규칙과 구분), 만들기 → 연결하기 → 계산기 조립 → 실행 큰 흐름
+- (스터디 질문 대화) 큐 개수는 하드웨어가 정하고 우리는 그 안에서 패밀리·개수를 고름, 버퍼/메모리 분리는 명시적 API 공통 특징(VMA), 모델 버퍼 크기는 "필요한 최대치로 미리 잡고 일부만 쓰기"(가중치·KV 캐시·중간 결과, offset/range, 넘치면 새로 만들어 옮김), Vulkan은 주로 추론용(학습은 CUDA 생태계), T4 한계값(`maxStorageBufferRange` 약 4GiB, `minStorageBufferOffsetAlignment` 16), `getMemoryRequirements()`의 size/alignment/memoryTypeBits, offset(시작 위치), device memory와 DeviceLocal(외장 GPU=VRAM, 내장 GPU=공유 RAM), `mapMemory()` 장점·단점(스테이징 버퍼와 비교), `void*`(타입 없는 포인터, 타입은 우리 코드와 셰이더가 약속), 메모리 매핑(주소 범위 연결), `memcpy`(memory copy, 받는 쪽 먼저, 주소+크기), `.data()`(첫 칸 주소), `unmapMemory()`(값 전송이 아니라 연결 해제, 다시 map하려면 필수)
 
 ## Claude에게 이어서 부탁할 때
 
