@@ -24,6 +24,21 @@ git push     # 작업 끝난 후
 - 회사 컴퓨터에 upstream 등록: `git remote add upstream https://github.com/Pseudo-Lab/Cross-Platform-AI.git`
 - 환경(Vulkan SDK, CMake, 컴파일러)은 컴퓨터마다 [00. 환경 설정](../examples/00-env-settings/README.md)을 먼저 확인
 
+## GCP 인스턴스 `vulkan-tutorial` (2026-10-13 존 이전)
+
+b 존(`asia-northeast3-b`)에 T4 재고가 없어(STOCKOUT) 켜지지 않아서, 스냅샷으로 **c 존(`asia-northeast3-c`)**에 같은 이름으로 다시 만들었습니다.
+
+- 그대로: 머신(n1-standard-4 + T4), 디스크 내용(홈, SDK, 저장소), 외부 고정 IP `34.47.80.216`, 서비스 계정
+- 바뀜: 존 b → c, 내부 IP `10.178.0.12` → `10.178.0.13`, SSH 호스트 키
+- 켜기: `gcloud compute instances start vulkan-tutorial --zone=asia-northeast3-c`
+- 남은 리소스: b 존 옛 인스턴스·디스크(꺼짐), 스냅샷 `vulkan-tutorial-snap-20261013` → 정리 여부 미정
+
+**회사 컴퓨터에서 처음 접속할 때 할 일** (집 Mac은 완료)
+
+- [ ] `~/.ssh/config`의 `ProxyCommand` 줄 `--zone=asia-northeast3-b` → `--zone=asia-northeast3-c`
+- [ ] 호스트 키 경고가 뜨면 `ssh-keygen -R vulkan-tutorial` 후 다시 접속
+- [ ] `gcloud compute ssh`를 쓰면 `--zone=asia-northeast3-c`로 지정
+
 ## 현재 위치 (2026-10-12 기준)
 
 **05. Buffer와 memory 완료 → 다음: 06. Descriptor set layout**
