@@ -84,6 +84,7 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 - [04-logical-device.md](04-logical-device.md): `{}` vs `()`(most vexing parse), 괄호 세 종류, `&`로 주소 넘기기, 큐 우선순위, `createLogicalDevice` 흐름, 큐 패밀리와 `vulkaninfo`로 확인하기, 빌드 결과, **스터디 질문 준비(Queue vs QueueFamily)**
 - [05-buffers-memory.md](05-buffers-memory.md): `static_assert`·`constexpr`(constant expression), 비트와 바이트, 멤버와 필드, 버퍼와 메모리 구분, 메모리 요구사항·`eHostVisible`/`eHostCoherent`, enum 값 앞의 `e`, `mapMemory`와 `memcpy`, 빌드 결과
 - [06-descriptor-layout.md](06-descriptor-layout.md): descriptor·descriptor set·layout·binding 용어, 누가 무엇을 가지나(버퍼/layout/set/셰이더), layout에 없는 것(버퍼 이름·크기·입출력), 빵 공장·AI 모델 비유, `descriptorCount`, `pXxx`+`xxxCount` 짝 패턴, `static_cast`, 빌드 결과
+- [07-descriptor-sets.md](07-descriptor-sets.md): `*` 구분 팁 (작성 중)
 
 노트에 아직 정리하지 않은, 대화에서 다룬 주제:
 
