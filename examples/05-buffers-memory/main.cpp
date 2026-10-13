@@ -214,10 +214,10 @@ private:
     }
     // TODO: createStorageBuffers(), createBuffer(), findMemoryType(),
     // writeAndVerifyBuffer()를 추가합니다.
-    bool createStorageBuffers()
+    bool createStorageBuffers() // 버퍼 생성
     {
         const std::array buffers = {&inputA, &inputB, &output};
-        for (auto* buffer : buffers)
+        for (auto* buffer : buffers) // buffers 배열에 들어 있는 주소를 하나씩 꺼내서 buffer라는 포인터 변수에 담는다
         {
             if (!createBuffer(bufferSize, *buffer))
             {
@@ -225,6 +225,7 @@ private:
             }
         }
 
+        /* GPU 입력값이 없으므로 테스트용 입력값 만들기*/
         std::array<float, elementCount> valuesA{};
         std::array<float, elementCount> valuesB{};
         const std::array<float, elementCount> initialOutput{};
@@ -233,6 +234,7 @@ private:
             valuesA[i] = static_cast<float>(i);
             valuesB[i] = 10.0f + static_cast<float>(i);
         }
+        /* 여기까지*/
 
         if (!writeAndVerifyBuffer(inputA, valuesA, "Input A")
             || !writeAndVerifyBuffer(inputB, valuesB, "Input B")
@@ -251,12 +253,12 @@ private:
     {
         vk::BufferCreateInfo bufferInfo{};
         bufferInfo.size = size;
-        bufferInfo.usage = vk::BufferUsageFlagBits::eStorageBuffer; // enumStorageBuffer
+        bufferInfo.usage = vk::BufferUsageFlagBits::eStorageBuffer; // enumStorageBuffer. 셰이더가 읽고 쓸 수 있는 버퍼
         bufferInfo.sharingMode = vk::SharingMode::eExclusive; // sharingMode : 큐 패밀리에서 자원을 공유하는 방식
 
-        resource.buffer = vk::raii::Buffer(device, bufferInfo); // C API: vkCreateBuffer
-        const auto requirements = resource.buffer.getMemoryRequirements(); // C API: vkGetBufferMemoryRequirements
-        const auto properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+        resource.buffer = vk::raii::Buffer(device, bufferInfo); // device(GPU)에게 bufferInfo 조건대로 버퍼를 만들어 달라고 하고, 그걸 resource.buffer에 넣는다
+        const auto requirements = resource.buffer.getMemoryRequirements(); // 이 버퍼를 올리려면 메모리가 얼마나, 어떤 조건으로 필요한지 드라이버에게 묻는다
+        const auto properties = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent; // "CPU가 볼 수 있고(HostVisible), CPU가 쓴 내용이 자동으로 GPU와 맞춰지는(HostCoherent) 메모리를 원한다
 
         std::uint32_t memoryTypeIndex = 0;
         if (!findMemoryType(requirements.memoryTypeBits, properties, memoryTypeIndex))
@@ -264,12 +266,12 @@ private:
             return false;
         }
 
-        vk::MemoryAllocateInfo allocationInfo{};
-        allocationInfo.allocationSize = requirements.size;
-        allocationInfo.memoryTypeIndex = memoryTypeIndex;
+        vk::MemoryAllocateInfo allocationInfo{}; // 메모리 할당 요청서(allocationInfo)를 빈 상태(0)로 만든다
+        allocationInfo.allocationSize = requirements.size; // 요청서에 '크기는 드라이버가 알려준 만큼' 이라고 적는다
+        allocationInfo.memoryTypeIndex = memoryTypeIndex; // 요청서에 '메모리 타입은 방금 찾으 번호' 라고 적는다
 
-        resource.memory = vk::raii::DeviceMemory(device, allocationInfo); // C API: vkAllocateMemory
-        resource.buffer.bindMemory(*resource.memory, 0); // C API: vkBindBufferMemory
+        resource.memory = vk::raii::DeviceMemory(device, allocationInfo); // device에게 요청서대로 메모리를 할당해 달라고 하고, 그 메모리를 resource.memory에 넣는다
+        resource.buffer.bindMemory(*resource.memory, 0); // 버퍼(설계도)를 방금 받은 메모리의 0번째 바이트 위치부터 연결한다
 
         std::cout << "Buffer memory: size " << requirements.size
                   << ", alignment " << requirements.alignment
@@ -296,11 +298,11 @@ private:
     }
 
     bool writeAndVerifyBuffer(BufferResource& resource,
-                              const std::array<float, elementCount>& values,
+                              const std::array<float, elementCount>& values, // resource : 기록할 버퍼, values : 기록할 값
                               const char* label)
     {
-        void* mapped = resource.memory.mapMemory(0, bufferSize); // C API: vkMapMemory
-        std::memcpy(mapped, values.data(), static_cast<std::size_t>(bufferSize));
+        void* mapped = resource.memory.mapMemory(0, bufferSize); // GPU 버퍼의 CPU용 주소 받기
+        std::memcpy(mapped, values.data(), static_cast<std::size_t>(bufferSize)); // memcpy = memory copy. CPU 배열 -> GPU 버퍼
         resource.memory.unmapMemory(); // C API: vkUnmapMemory
 
         std::array<float, elementCount> readback{};
