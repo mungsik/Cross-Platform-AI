@@ -39,25 +39,16 @@ b 존(`asia-northeast3-b`)에 T4 재고가 없어(STOCKOUT) 켜지지 않아서,
 - [ ] 호스트 키 경고가 뜨면 `ssh-keygen -R vulkan-tutorial` 후 다시 접속
 - [ ] `gcloud compute ssh`를 쓰면 `--zone=asia-northeast3-c`로 지정
 
-## 현재 위치 (2026-10-12 기준)
+## 현재 위치 (2026-10-13 기준)
 
-**05. Buffer와 memory 완료 → 다음: 06. Descriptor set layout**
+**06. Descriptor set layout 완료 → 다음: 07. Descriptor sets**
 
-- 05장: `examples/05-buffers-memory/main.cpp` 빌드·실행 확인 (버퍼 3개 × 32바이트, 메모리 type 3, CPU 기록·확인 통과)
+- 06장: `examples/06-descriptor-layout/main.cpp` 빌드·실행 확인 (`Descriptor set layout created: 3 bindings.`, 검증 레이어 경고 없음)
+- 06장은 README 보며 직접 채움 (바인딩 3개 반복문, `DescriptorSetLayoutCreateInfo`, `initVulkan()` 연결)
+- 06장 실행 결과 터미널 캡처 제출하기 (README 요구사항)
 - 05장 후반(`createBuffer()`의 메모리 할당·연결부터 `writeAndVerifyBuffer()`, `createStorageBuffers()`, `initVulkan()` 연결까지)은 Claude가 채움 → 코드 읽으며 복습 필요
 - 02장은 콜백 작성 단계에서 멈춘 채 넘어옴 (나중에 돌아가서 마무리)
-- 다음: [06. Descriptor set layout](../examples/06-descriptor-layout/README.md)
-
-### 05장 진행 상황
-
-- [x] 버퍼 크기와 보관할 자리 만들기 (`static_assert`, `elementCount`, `bufferSize`, `BufferResource`, `inputA`/`inputB`/`output`)
-- [x] 버퍼 객체 만들기 (`vk::BufferCreateInfo`, `eStorageBuffer`, `eExclusive`)
-- [x] 버퍼가 요구하는 메모리 확인하기 (`getMemoryRequirements()`, `eHostVisible | eHostCoherent`)
-- [x] 사용할 메모리 유형 찾기 (`findMemoryType()`, `1u << i` 비트 검사)
-- [x] 메모리 할당하고 버퍼에 연결하기 (`vk::raii::DeviceMemory`, `bindMemory`)
-- [x] CPU에서 값 기록하기 / 다시 읽기 (`mapMemory`, `memcpy`, `unmapMemory`)
-- [x] 입력과 출력 버퍼 준비하기 (`createStorageBuffers()`)
-- [x] 초기화 순서에 연결하기 / 빌드와 실행 (타깃 `buffers_memory_example`)
+- 다음: [07. Descriptor sets](../examples/07-descriptor-sets/README.md) (06의 양식대로 셋을 만들고 0/1/2번 칸에 `inputA`/`inputB`/`output` 실제 연결)
 
 ## 완료한 장
 
@@ -69,13 +60,14 @@ b 존(`asia-northeast3-b`)에 T4 재고가 없어(STOCKOUT) 켜지지 않아서,
 | 03. Physical devices | ✅ | 빌드·실행 확인 (`Selected physical device: Tesla T4`) |
 | 04. Logical device | ✅ | 빌드·실행 확인 (`Logical device created.`) |
 | 05. Buffer와 memory | ✅ | 빌드·실행 확인 (`CPU write/readback verified.`) |
+| 06. Descriptor set layout | ✅ | 빌드·실행 확인 (`Descriptor set layout created: 3 bindings.`) |
 
 ## 빌드 명령 (Linux)
 
 ```sh
 cd examples/<장 폴더>
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physical_devices, 04: logical_device_example, 05: buffers_memory_example
+cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physical_devices, 04: logical_device_example, 05: buffers_memory_example, 06: descriptor_layout_example
 ./build/main
 ```
 
@@ -88,6 +80,7 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 - [03-physical-devices.md](03-physical-devices.md): `!`로 실패 먼저 거르기(early return), Context, `vk::raii::Context context;` 읽는 법, `auto`, `std::optional`과 `const ... &`, `std::move()`, 빌드 결과 해석
 - [04-logical-device.md](04-logical-device.md): `{}` vs `()`(most vexing parse), 괄호 세 종류, `&`로 주소 넘기기, 큐 우선순위, `createLogicalDevice` 흐름, 큐 패밀리와 `vulkaninfo`로 확인하기, 빌드 결과, **스터디 질문 준비(Queue vs QueueFamily)**
 - [05-buffers-memory.md](05-buffers-memory.md): `static_assert`·`constexpr`(constant expression), 비트와 바이트, 멤버와 필드, 버퍼와 메모리 구분, 메모리 요구사항·`eHostVisible`/`eHostCoherent`, enum 값 앞의 `e`, `mapMemory`와 `memcpy`, 빌드 결과
+- [06-descriptor-layout.md](06-descriptor-layout.md): descriptor·descriptor set·layout·binding 용어, 누가 무엇을 가지나(버퍼/layout/set/셰이더), layout에 없는 것(버퍼 이름·크기·입출력), 빵 공장·AI 모델 비유, `descriptorCount`, `pXxx`+`xxxCount` 짝 패턴, `static_cast`, 빌드 결과
 
 노트에 아직 정리하지 않은, 대화에서 다룬 주제:
 
@@ -108,7 +101,7 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 
 ## Claude에게 이어서 부탁할 때
 
-> `cpp_study/PROGRESS.md` 읽고 다음 장(06)부터 이어서 도와줘.
+> `cpp_study/PROGRESS.md` 읽고 다음 장(07)부터 이어서 도와줘.
 
 - 파이썬은 익숙하고 C++은 처음 배우는 중입니다. 파이썬과 비교하는 설명을 선호합니다.
 - 코드는 README를 보며 직접 채웁니다. 정답 코드를 대신 써 주기보다 문법 설명과 실수 지적을 원합니다.

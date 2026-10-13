@@ -53,7 +53,8 @@ private:
             && setupDebugMessenger()
             && pickPhysicalDevice()
             && createLogicalDevice()
-            && createStorageBuffers();
+            && createStorageBuffers()
+            && createDescriptorSetLayout();
     }
 
     bool checkValidationLayerSupport()
@@ -312,8 +313,20 @@ private:
         std::array<vk::DescriptorSetLayoutBinding, 3> bindings{}; // 바인딩 설명(DescriptorSetLayoutBinding) 3개를 담는 고정 크기 배열 bindings를 만들고, 전부 기본값(0)으로 초기화
         for (std::uint32_t i = 0; i < bindings.size(); ++i)
         {
-            //
+            bindings[i].binding = i; // i번째 설명서의 자리 번호를 i번호로 정함. 그래서 0번은 InputA, 1번은 inputB, 2번은 output이 됨
+            bindings[i].descriptorType = vk::DescriptorType::eStorageBuffer; 
+            bindings[i].descriptorCount = 1;
+            bindings[i].stageFlags = vk::ShaderStageFlagBits::eCompute;
         }
+
+        vk::DescriptorSetLayoutCreateInfo layoutInfo{}; // 빈 주문서를 만들고 0으로 초기화
+        layoutInfo.bindingCount = static_cast<std::uint32_t>(bindings.size()); // 주문서에 '설명서가 몇 장인지' 적음
+        layoutInfo.pBindings = bindings.data(); // 주문서에 '설명서가 어디 있는지(주소)' 를 적음
+        descriptorSetLayout = vk::raii::DescriptorSetLayout(device, layoutInfo); // 논리 장치(Device)에 주문서를 주고 실제 layout을 만듦.
+
+        std::cout << "Descriptor set layout created: " << bindings.size() << " bindings.\n";
+
+        return true;
     }
 };
 
