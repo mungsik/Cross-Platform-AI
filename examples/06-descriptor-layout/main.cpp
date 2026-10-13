@@ -44,6 +44,7 @@ private:
     BufferResource inputB;
     BufferResource output;
     // TODO: descriptorSetLayout 멤버를 추가합니다.
+    vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
 
     bool initVulkan()
     {
@@ -306,6 +307,14 @@ private:
         return true;
     }
     // TODO: createDescriptorSetLayout() 함수를 추가합니다.
+    bool createDescriptorSetLayout()
+    {
+        std::array<vk::DescriptorSetLayoutBinding, 3> bindings{}; // 바인딩 설명(DescriptorSetLayoutBinding) 3개를 담는 고정 크기 배열 bindings를 만들고, 전부 기본값(0)으로 초기화
+        for (std::uint32_t i = 0; i < bindings.size(); ++i)
+        {
+            //
+        }
+    }
 };
 
 int main()
