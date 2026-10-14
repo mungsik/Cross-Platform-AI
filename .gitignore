@@ -17,3 +17,9 @@
 # Submodule.
 !/external/
 !/external/eva/
+
+# 개인 공부 기록 (seongsik 브랜치 전용).
+!/cpp_study/
+!/cpp_study/**
+!/question/
+!/question/**

@@ -20,7 +20,8 @@ git push     # 작업 끝난 후
 ```
 
 - 작업 브랜치: `seongsik` (내 포크 `origin` = mungsik/Cross-Platform-AI)
-- **원본(upstream = Pseudo-Lab)에는 push나 PR 금지.** 원본의 새 장을 받을 때만 `git pull upstream main`
+- **원본(upstream = Pseudo-Lab)에는 push나 PR 금지.** 원본의 새 장을 받을 때만 `git fetch upstream` 후 merge (2026-10-14 기준 08~13장은 `main`이 아니라 `upstream/compute-pipeline-tutorials` 브랜치에 있음)
+- upstream `.gitignore`가 허용 목록(allowlist) 방식이라, `cpp_study/`·`question/`을 허용하는 줄을 `.gitignore` 맨 끝에 추가해 둠 → upstream merge 때 이 줄이 지워지지 않았는지 확인
 - 회사 컴퓨터에 upstream 등록: `git remote add upstream https://github.com/Pseudo-Lab/Cross-Platform-AI.git`
 - 환경(Vulkan SDK, CMake, 컴파일러)은 컴퓨터마다 [00. 환경 설정](../examples/00-env-settings/README.md)을 먼저 확인
 
@@ -33,15 +34,15 @@ b 존(`asia-northeast3-b`)에 T4 재고가 없어(STOCKOUT) 켜지지 않아서,
 - 켜기: `gcloud compute instances start vulkan-tutorial --zone=asia-northeast3-c`
 - 남은 리소스: b 존 옛 인스턴스·디스크(꺼짐), 스냅샷 `vulkan-tutorial-snap-20261013` → 정리 여부 미정
 
-**회사 컴퓨터에서 처음 접속할 때 할 일** (집 Mac은 완료)
+**회사 컴퓨터에서 처음 접속할 때 할 일** (집 Mac 완료, 회사 컴퓨터도 2026-10-14 접속 확인)
 
-- [ ] `~/.ssh/config`의 `ProxyCommand` 줄 `--zone=asia-northeast3-b` → `--zone=asia-northeast3-c`
-- [ ] 호스트 키 경고가 뜨면 `ssh-keygen -R vulkan-tutorial` 후 다시 접속
-- [ ] `gcloud compute ssh`를 쓰면 `--zone=asia-northeast3-c`로 지정
+- [x] `~/.ssh/config`의 `ProxyCommand` 줄 `--zone=asia-northeast3-b` → `--zone=asia-northeast3-c`
+- [x] 호스트 키 경고가 뜨면 `ssh-keygen -R vulkan-tutorial` 후 다시 접속
+- [x] `gcloud compute ssh`를 쓰면 `--zone=asia-northeast3-c`로 지정
 
-## 현재 위치 (2026-10-13 기준)
+## 현재 위치 (2026-10-14 기준)
 
-**07. Descriptor pool과 sets 완료 → 다음: 08장 (저장소에 아직 없음, `git pull upstream main`으로 확인)**
+**07. Descriptor pool과 sets 완료 → 다음: [08. Compute shader](../examples/08-compute-shader/README.md)** (08~13장 upstream에서 받아 옴, 2026-10-14)
 
 - 07장: `examples/07-descriptor-sets/main.cpp` 빌드·실행 확인 (풀 max sets 1 / StorageBuffer 3개, 바인딩 0·1·2가 각각 다른 버퍼 핸들, range 32 bytes, 검증 레이어 경고 없음)
 - 07장: `<vector>`, 멤버, `createDescriptorPool()`은 직접 채움. `createDescriptorSets()` 전체와 `initVulkan()` 연결은 Claude가 채움 → 코드 읽으며 복습 필요 (특히 `pSetLayouts = &layout`, `for (auto& ...)`의 `&`, `pBufferInfo = &bufferInfos[i]`)
@@ -50,7 +51,7 @@ b 존(`asia-northeast3-b`)에 T4 재고가 없어(STOCKOUT) 켜지지 않아서,
 - 06장은 README 보며 직접 채움 (바인딩 3개 반복문, `DescriptorSetLayoutCreateInfo`, `initVulkan()` 연결)
 - 05장 후반(`createBuffer()`의 메모리 할당·연결부터 `writeAndVerifyBuffer()`, `createStorageBuffers()`, `initVulkan()` 연결까지)은 Claude가 채움 → 코드 읽으며 복습 필요
 - 02장은 콜백 작성 단계에서 멈춘 채 넘어옴 (나중에 돌아가서 마무리)
-- 다음: 08장이 올라오면 이어서 (셰이더 모듈 → 파이프라인 → 커맨드 버퍼·dispatch → 제출·대기 → `output` 읽기 순서로 예상)
+- 다음: 08 Compute shader → 09 Compute pipeline → 10 Command buffers → 11 Dispatch와 동기화 → 12 Staging buffers → 13 Multiple dispatches (11장에서 첫 GPU 벡터 덧셈 완성)
 
 ## 완료한 장
 
