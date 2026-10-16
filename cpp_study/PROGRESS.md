@@ -91,6 +91,7 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 - [05-buffers-memory.md](05-buffers-memory.md): `static_assert`·`constexpr`(constant expression), 비트와 바이트, 멤버와 필드, 버퍼와 메모리 구분, 메모리 요구사항·`eHostVisible`/`eHostCoherent`, enum 값 앞의 `e`, `mapMemory`와 `memcpy`, 빌드 결과
 - [06-descriptor-layout.md](06-descriptor-layout.md): descriptor·descriptor set·layout·binding 용어, 누가 무엇을 가지나(버퍼/layout/set/셰이더), layout에 없는 것(버퍼 이름·크기·입출력), 빵 공장·AI 모델 비유, `descriptorCount`, `pXxx`+`xxxCount` 짝 패턴, `static_cast`, 빌드 결과
 - [07-descriptor-sets.md](07-descriptor-sets.md): `*` 구분 팁 (작성 중)
+- 그림 정리 (브라우저로 열기): [vulkan-overview.html](vulkan-overview.html) 00~07장 총정리(전체 지도·검증 레이어·큐 패밀리·버퍼/메모리·RAII 정리 순서·C++ 문법 모음), [descriptor-visual.html](descriptor-visual.html) 06·07장 디스크립터 단계별 그림
 
 노트에 아직 정리하지 않은, 대화에서 다룬 주제:
 
@@ -110,6 +111,7 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 - (04~05장 대화) CPU가 GPU에 일을 시키는 구조와 Queue 활용 흐름(커맨드 버퍼 → submit → fence), 논리 장치, Vulkan이란(Khronos 표준, CUDA·Metal 비교), 크로스 플랫폼 조건과 기기별 최적화, Vulkan으로 AI 모델 실행(llama.cpp, ncnn 등)
 - (07장 대화) `#include <vector>`와 `std::vector`(파이썬 list, 길이 가변) vs `std::array`(고정), descriptor pool(셋을 떼어 주는 창고, 칸당 count vs 풀 전체 count), Vulkan 핸들(번호표, opaque, `vk::Buffer` vs `vk::raii::Buffer`), `*`의 세 가지(포인터 역참조·`*optional`·`*raii`, 연산자 오버로딩), descriptor는 "설명서"가 아니라 자원 위치 쪽지(LayoutBinding = 칸 규칙과 구분), 만들기 → 연결하기 → 계산기 조립 → 실행 큰 흐름
 - (스터디 질문 대화) 큐 개수는 하드웨어가 정하고 우리는 그 안에서 패밀리·개수를 고름, 버퍼/메모리 분리는 명시적 API 공통 특징(VMA), 모델 버퍼 크기는 "필요한 최대치로 미리 잡고 일부만 쓰기"(가중치·KV 캐시·중간 결과, offset/range, 넘치면 새로 만들어 옮김), Vulkan은 주로 추론용(학습은 CUDA 생태계), T4 한계값(`maxStorageBufferRange` 약 4GiB, `minStorageBufferOffsetAlignment` 16), `getMemoryRequirements()`의 size/alignment/memoryTypeBits, offset(시작 위치), device memory와 DeviceLocal(외장 GPU=VRAM, 내장 GPU=공유 RAM), `mapMemory()` 장점·단점(스테이징 버퍼와 비교), `void*`(타입 없는 포인터, 타입은 우리 코드와 셰이더가 약속), 메모리 매핑(주소 범위 연결), `memcpy`(memory copy, 받는 쪽 먼저, 주소+크기), `.data()`(첫 칸 주소), `unmapMemory()`(값 전송이 아니라 연결 해제, 다시 map하려면 필수)
+- (2026-10-16 디스크립터·메모리 복습 대화) binding = descriptor set 안의 번호 붙은 자리 vs descriptorType(storage 등) 구분, descriptor = buffer 위치 정보(offset/range, 데이터 복사 아님) vs push constant(값 자체, 08장 `params.count`), descriptor set = binding 묶음(set·binding 2단계 번호, bindDescriptorSets로 통째로 연결), pool의 maxSets·type별 descriptorCount ≥ 필요량(layout↔set 칸 수는 자동, layout↔셰이더는 개발자가 맞춤), `eFreeDescriptorSet`가 필요한 이유(raii 개별 반납), binding 수는 계산이 정하고 GPU 한계는 천장(T4 storage 1,048,576 / 최소 보장 4, `maxBoundDescriptorSets` 32는 set 수), buffer(정의)·memory(공간)·data 구분과 CPU(map) vs GPU(descriptor) 접근 경로, HostVisible(map 가능)·HostCoherent(flush/invalidate 불필요, 캐시 불일치)·HostCached, T4 메모리 타입 3번(캐시 없음)·4번(cached), 버퍼 값은 언제든 수정·크기는 고정(재생성+복사, 2배 성장, 쪼개기, OOM 시 CPU 메모리), 큰 할당 하나를 sub-allocation(VMA)·재사용, Vulkan이 객체를 분리한 이유(explicit API), buffer와 queue의 관계(command buffer가 descriptor set으로 간접 참조, `sharingMode`), queue는 GPU 쪽(CPU는 handle만), submit=시작·dispatch=기록
 
 ## Claude에게 이어서 부탁할 때
 

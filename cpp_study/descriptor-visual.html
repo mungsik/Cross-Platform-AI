@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>디스크립터 그림 해설</title>
+<style>
+:root {
+  --bg: #fafaf7; --surface: #ffffff; --ink: #1d1d1b; --muted: #66645e; --line: #d9d6cc;
+  --buf: #b5651d; --buf-bg: #fbeedd;
+  --set: #2459a8; --set-bg: #e3ecfa;
+  --lay: #6b4fa3; --lay-bg: #eee7f8;
+  --pool: #2e7d4f; --pool-bg: #e2f2e8;
+  --sh: #b02a5b; --sh-bg: #fbe3ec;
+  --note: #8a6d00; --note-bg: #fff6cc;
+  --code-bg: #f1efe8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161614; --surface: #201f1c; --ink: #ecebe6; --muted: #a3a097; --line: #3a3832;
+    --buf: #f0a35e; --buf-bg: #3a2a1a;
+    --set: #7fb0ff; --set-bg: #1b2a42;
+    --lay: #b9a0f0; --lay-bg: #2a2340;
+    --pool: #6fd29a; --pool-bg: #183325;
+    --sh: #f27aa6; --sh-bg: #3d1a28;
+    --note: #f1d36b; --note-bg: #3a3214;
+    --code-bg: #2a2925;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161614; --surface: #201f1c; --ink: #ecebe6; --muted: #a3a097; --line: #3a3832;
+  --buf: #f0a35e; --buf-bg: #3a2a1a;
+  --set: #7fb0ff; --set-bg: #1b2a42;
+  --lay: #b9a0f0; --lay-bg: #2a2340;
+  --pool: #6fd29a; --pool-bg: #183325;
+  --sh: #f27aa6; --sh-bg: #3d1a28;
+  --note: #f1d36b; --note-bg: #3a3214;
+  --code-bg: #2a2925;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+  line-height: 1.65; font-size: 16px;
+}
+main { max-width: 980px; margin: 0 auto; padding: 32px 16px 80px; }
+h1 { font-size: 1.7rem; margin: 0 0 4px; }
+h2 { font-size: 1.25rem; margin: 48px 0 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+p.lead { color: var(--muted); margin: 0 0 24px; }
+code, pre { font-family: "JetBrains Mono", "D2Coding", Menlo, Consolas, monospace; font-size: .88em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 8px 0; line-height: 1.5; }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+.tbl { overflow-x: auto; }
+.chip { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+
+/* stepper */
+.stage { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.stage svg { width: 100%; height: auto; display: block; }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0 0; }
+.controls button {
+  font: inherit; font-size: .9rem; padding: 6px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+.controls button:disabled { opacity: .4; cursor: default; }
+.dots { display: flex; gap: 6px; flex-wrap: wrap; }
+.dots button { padding: 4px 10px; font-size: .8rem; }
+.dots button.on { background: var(--set); border-color: var(--set); color: var(--surface); }
+.explain { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.explain h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.explain .lbl { font-size: .78rem; color: var(--muted); font-weight: 600; margin-top: 6px; }
+@media (max-width: 720px) { .explain { grid-template-columns: 1fr; } }
+
+/* svg */
+svg text { fill: var(--ink); font-family: inherit; }
+svg .muted { fill: var(--muted); }
+svg .mono { font-family: "JetBrains Mono", Menlo, Consolas, monospace; }
+.g { transition: opacity .35s; }
+.hidden { opacity: 0; pointer-events: none; }
+.dim { opacity: .35; }
+.buf-box { fill: var(--buf-bg); stroke: var(--buf); stroke-width: 2; }
+.buf-cell { fill: var(--surface); stroke: var(--buf); stroke-width: 1; }
+.set-box { fill: var(--set-bg); stroke: var(--set); stroke-width: 2; }
+.slot { fill: var(--surface); stroke: var(--set); stroke-width: 1.5; }
+.slot-empty { fill: var(--surface); stroke: var(--set); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.lay-box { fill: var(--lay-bg); stroke: var(--lay); stroke-width: 2; stroke-dasharray: 7 4; }
+.lay-slot { fill: var(--surface); stroke: var(--lay); stroke-width: 1.2; stroke-dasharray: 4 3; }
+.pool-box { fill: var(--pool-bg); stroke: var(--pool); stroke-width: 2; }
+.sh-box { fill: var(--sh-bg); stroke: var(--sh); stroke-width: 2; }
+.note-box { fill: var(--note-bg); stroke: var(--note); stroke-width: 1.5; }
+.a-set { stroke: var(--set); stroke-width: 2.2; fill: none; }
+.a-sh { stroke: var(--sh); stroke-width: 2.2; fill: none; stroke-dasharray: 6 4; }
+.a-lay { stroke: var(--lay); stroke-width: 2; fill: none; }
+.a-pool { stroke: var(--pool); stroke-width: 2; fill: none; }
+.t-buf { fill: var(--buf) !important; } .t-set { fill: var(--set) !important; }
+.t-lay { fill: var(--lay) !important; } .t-pool { fill: var(--pool) !important; }
+.t-sh { fill: var(--sh) !important; } .t-note { fill: var(--note) !important; }
+.focus { filter: drop-shadow(0 0 6px var(--set)); }
+
+/* count compare */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.card h4 { margin: 0 0 4px; font-size: 1rem; }
+.card .big { font-size: 1.6rem; font-weight: 700; }
+.card small { color: var(--muted); }
+.callout { background: var(--note-bg); border-left: 4px solid var(--note); padding: 10px 14px; border-radius: 6px; margin: 12px 0; }
+</style>
+</head>
+<body>
+<main>
+<h1>디스크립터 그림으로 보기</h1>
+<p class="lead">06장(레이아웃)과 07장(풀과 셋)에서 만든 것들이 무엇이고 서로 어떻게 연결되는지 그림으로 정리했습니다. 기준 코드는 <code>examples/07-descriptor-sets/main.cpp</code>입니다. 00~07장 전체 흐름은 <a href="vulkan-overview.html">Vulkan 00~07장 총정리</a>에 있습니다.</p>
+
+<h2>0. 이름부터</h2>
+<div class="tbl"><table>
+<tr><th>이름 (영어)</th><th>한글</th><th>한 줄 뜻</th><th>장</th></tr>
+<tr><td><span class="chip" style="background:var(--buf)"></span><b>buffer</b></td><td>버퍼</td><td>실제 숫자가 담긴 GPU 메모리 덩어리</td><td>05</td></tr>
+<tr><td><span class="chip" style="background:var(--note)"></span><b>descriptor</b></td><td>디스크립터</td><td>binding 하나에 들어가는 자원 정보: "<i>어느 buffer</i>의 <i>offset부터 range 바이트</i>"</td><td>07</td></tr>
+<tr><td><span class="chip" style="background:var(--lay)"></span><b>descriptor set layout</b></td><td>디스크립터 셋 레이아웃</td><td>descriptor set의 구조 정의: binding 번호마다 descriptor type, descriptorCount, stageFlags</td><td>06</td></tr>
+<tr><td><span class="chip" style="background:var(--lay)"></span><b>binding</b></td><td>바인딩</td><td>descriptor set 안의 <b>번호 붙은 자리</b> (0, 1, 2). 셰이더의 <code>binding = N</code>과 대응</td><td>06</td></tr>
+<tr><td><span class="chip" style="background:var(--pool)"></span><b>descriptor pool</b></td><td>디스크립터 풀</td><td>descriptor set을 할당(allocate)하는 곳. <code>maxSets</code>와 descriptor type별 개수를 정함</td><td>07</td></tr>
+<tr><td><span class="chip" style="background:var(--set)"></span><b>descriptor set</b></td><td>디스크립터 셋</td><td>layout에 따라 pool에서 할당한 실제 객체. binding마다 descriptor가 들어감</td><td>07</td></tr>
+<tr><td><span class="chip" style="background:var(--sh)"></span><b>shader</b></td><td>셰이더</td><td>GPU에서 도는 계산 코드. 버퍼를 <b>번호(set, binding)로만</b> 찾음</td><td>08</td></tr>
+</table></div>
+
+<div class="callout">핵심 한 줄: 셰이더는 C++ 변수 이름 <code>inputA</code>를 모릅니다. 셰이더 코드에는 <b>"set 0의 binding 0"</b> 같은 번호만 있어서, 그 번호가 어느 buffer인지 알려 주는 descriptor가 필요합니다.</div>
+
+<h2>1. 한 단계씩 따라가기</h2>
+<p>아래 버튼(또는 키보드 ← →)으로 단계를 넘겨 보세요. 그림과 코드가 함께 바뀝니다.</p>
+
+<div class="stage" id="stepper">
+<svg viewBox="0 0 960 570" role="img" aria-label="버퍼, 레이아웃, 풀, 셋, 셰이더의 연결 관계">
+  <defs>
+    <marker id="m-set" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--set)"/></marker>
+    <marker id="m-sh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--sh)"/></marker>
+    <marker id="m-lay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--lay)"/></marker>
+    <marker id="m-pool" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--pool)"/></marker>
+  </defs>
+
+  <!-- column titles -->
+  <text x="140" y="34" text-anchor="middle" font-weight="700" class="t-buf">버퍼 (05장)</text>
+  <text x="140" y="52" text-anchor="middle" font-size="12" class="muted">GPU가 볼 수 있는 메모리</text>
+  <g class="g" data-show="4"><text x="370" y="34" text-anchor="middle" font-weight="700" class="t-note">bufferInfos (descriptor 정보)</text></g>
+  <g class="g" data-show="3"><text x="590" y="34" text-anchor="middle" font-weight="700" class="t-set">descriptorSets[0]</text>
+    <text x="590" y="52" text-anchor="middle" font-size="12" class="muted">set = 0</text></g>
+  <g class="g" data-show="6"><text x="845" y="34" text-anchor="middle" font-weight="700" class="t-sh">셰이더 add.comp (08장)</text></g>
+
+  <!-- buffers -->
+  <g id="buffers" data-focus="0">
+    <g transform="translate(30,75)">
+      <rect class="buf-box" width="220" height="80" rx="8"/>
+      <text x="12" y="24" font-weight="700" class="mono">inputA.buffer</text>
+      <text x="208" y="24" text-anchor="end" font-size="12" class="muted">32 bytes</text>
+      <g class="cells"></g>
+    </g>
+    <g transform="translate(30,195)">
+      <rect class="buf-box" width="220" height="80" rx="8"/>
+      <text x="12" y="24" font-weight="700" class="mono">inputB.buffer</text>
+      <text x="208" y="24" text-anchor="end" font-size="12" class="muted">32 bytes</text>
+      <g class="cells"></g>
+    </g>
+    <g transform="translate(30,315)">
+      <rect class="buf-box" width="220" height="80" rx="8"/>
+      <text x="12" y="24" font-weight="700" class="mono">output.buffer</text>
+      <text x="208" y="24" text-anchor="end" font-size="12" class="muted">32 bytes</text>
+      <g class="cells"></g>
+    </g>
+  </g>
+  <g class="g" data-show="0" data-hide="1">
+    <text x="140" y="425" text-anchor="middle" font-size="13" class="muted">float 8개 × 4바이트 = 32바이트</text>
+  </g>
+
+  <!-- notes (bufferInfos) -->
+  <g class="g" data-show="4" data-focus="4">
+    <g transform="translate(290,85)"><rect class="note-box" width="160" height="60" rx="6"/>
+      <text x="10" y="20" font-size="12" font-weight="700" class="mono">bufferInfos[0]</text>
+      <text x="10" y="37" font-size="11.5" class="mono">buffer = inputA</text>
+      <text x="10" y="52" font-size="11.5" class="mono">offset 0, range 32</text></g>
+    <g transform="translate(290,205)"><rect class="note-box" width="160" height="60" rx="6"/>
+      <text x="10" y="20" font-size="12" font-weight="700" class="mono">bufferInfos[1]</text>
+      <text x="10" y="37" font-size="11.5" class="mono">buffer = inputB</text>
+      <text x="10" y="52" font-size="11.5" class="mono">offset 0, range 32</text></g>
+    <g transform="translate(290,325)"><rect class="note-box" width="160" height="60" rx="6"/>
+      <text x="10" y="20" font-size="12" font-weight="700" class="mono">bufferInfos[2]</text>
+      <text x="10" y="37" font-size="11.5" class="mono">buffer = output</text>
+      <text x="10" y="52" font-size="11.5" class="mono">offset 0, range 32</text></g>
+    <!-- note -> buffer (the note names the buffer) -->
+    <path class="a-set" style="stroke:var(--note)" d="M290,115 L254,115"/>
+    <path class="a-set" style="stroke:var(--note)" d="M290,235 L254,235"/>
+    <path class="a-set" style="stroke:var(--note)" d="M290,355 L254,355"/>
+  </g>
+
+  <!-- descriptor set -->
+  <g class="g" data-show="3" data-focus="3 5">
+    <rect class="set-box" x="490" y="65" width="200" height="345" rx="10"/>
+    <!-- slot 0 -->
+    <g transform="translate(505,85)">
+      <rect class="slot-empty g" data-show="3" data-hide="5" width="170" height="60" rx="6"/>
+      <rect class="slot g" data-show="5" width="170" height="60" rx="6"/>
+      <text x="10" y="22" font-size="13" font-weight="700">binding 0</text>
+      <text x="10" y="42" font-size="12" class="muted g" data-show="3" data-hide="5">(비어 있음)</text>
+      <text x="10" y="42" font-size="12" class="t-set mono g" data-show="5">→ inputA</text>
+      <text x="160" y="22" font-size="11" text-anchor="end" class="muted">Storage</text>
+    </g>
+    <g transform="translate(505,205)">
+      <rect class="slot-empty g" data-show="3" data-hide="5" width="170" height="60" rx="6"/>
+      <rect class="slot g" data-show="5" width="170" height="60" rx="6"/>
+      <text x="10" y="22" font-size="13" font-weight="700">binding 1</text>
+      <text x="10" y="42" font-size="12" class="muted g" data-show="3" data-hide="5">(비어 있음)</text>
+      <text x="10" y="42" font-size="12" class="t-set mono g" data-show="5">→ inputB</text>
+      <text x="160" y="22" font-size="11" text-anchor="end" class="muted">Storage</text>
+    </g>
+    <g transform="translate(505,325)">
+      <rect class="slot-empty g" data-show="3" data-hide="5" width="170" height="60" rx="6"/>
+      <rect class="slot g" data-show="5" width="170" height="60" rx="6"/>
+      <text x="10" y="22" font-size="13" font-weight="700">binding 2</text>
+      <text x="10" y="42" font-size="12" class="muted g" data-show="3" data-hide="5">(비어 있음)</text>
+      <text x="10" y="42" font-size="12" class="t-set mono g" data-show="5">→ output</text>
+      <text x="160" y="22" font-size="11" text-anchor="end" class="muted">Storage</text>
+    </g>
+  </g>
+
+  <!-- writes: slot -> note -->
+  <g class="g" data-show="5" data-focus="5">
+    <path class="a-set" marker-end="url(#m-set)" d="M505,115 L456,115"/>
+    <path class="a-set" marker-end="url(#m-set)" d="M505,235 L456,235"/>
+    <path class="a-set" marker-end="url(#m-set)" d="M505,355 L456,355"/>
+    <text x="478" y="105" font-size="11" text-anchor="middle" class="t-set mono">writes[0]</text>
+    <text x="478" y="225" font-size="11" text-anchor="middle" class="t-set mono">writes[1]</text>
+    <text x="478" y="345" font-size="11" text-anchor="middle" class="t-set mono">writes[2]</text>
+  </g>
+
+  <!-- shader -->
+  <g class="g" data-show="6" data-focus="6">
+    <rect class="sh-box" x="740" y="65" width="210" height="345" rx="10"/>
+    <text x="752" y="108" font-size="11.5" class="mono">layout(set = 0,</text>
+    <text x="752" y="124" font-size="11.5" class="mono">  binding = 0) inputA</text>
+    <text x="752" y="228" font-size="11.5" class="mono">layout(set = 0,</text>
+    <text x="752" y="244" font-size="11.5" class="mono">  binding = 1) inputB</text>
+    <text x="752" y="348" font-size="11.5" class="mono">layout(set = 0,</text>
+    <text x="752" y="364" font-size="11.5" class="mono">  binding = 2) resultBuffer</text>
+    <path class="a-sh" marker-end="url(#m-sh)" d="M740,115 L681,115"/>
+    <path class="a-sh" marker-end="url(#m-sh)" d="M740,235 L681,235"/>
+    <path class="a-sh" marker-end="url(#m-sh)" d="M740,355 L681,355"/>
+  </g>
+  <g class="g" data-show="0" data-hide="6">
+    <rect x="740" y="65" width="210" height="345" rx="10" fill="none" style="stroke:var(--line)" stroke-dasharray="6 5"/>
+    <text x="845" y="225" text-anchor="middle" font-size="13" class="muted">셰이더</text>
+    <text x="845" y="245" text-anchor="middle" font-size="12" class="muted">"inputA가 뭐지?"</text>
+    <text x="845" y="263" text-anchor="middle" font-size="12" class="muted">번호만 알고 이름은 모름</text>
+  </g>
+
+  <!-- bottom: layout + pool -->
+  <g class="g" data-show="1" data-focus="1">
+    <rect class="lay-box" x="290" y="450" width="200" height="105" rx="10"/>
+    <text x="302" y="472" font-size="13" font-weight="700" class="t-lay">descriptorSetLayout (06장)</text>
+    <g transform="translate(302,484)">
+      <rect class="lay-slot" width="56" height="58" rx="4"/><text x="28" y="18" font-size="11" text-anchor="middle">binding 0</text><text x="28" y="34" font-size="10" text-anchor="middle" class="muted">Storage</text><text x="28" y="48" font-size="10" text-anchor="middle" class="muted">×1</text>
+    </g>
+    <g transform="translate(362,484)">
+      <rect class="lay-slot" width="56" height="58" rx="4"/><text x="28" y="18" font-size="11" text-anchor="middle">binding 1</text><text x="28" y="34" font-size="10" text-anchor="middle" class="muted">Storage</text><text x="28" y="48" font-size="10" text-anchor="middle" class="muted">×1</text>
+    </g>
+    <g transform="translate(422,484)">
+      <rect class="lay-slot" width="56" height="58" rx="4"/><text x="28" y="18" font-size="11" text-anchor="middle">binding 2</text><text x="28" y="34" font-size="10" text-anchor="middle" class="muted">Storage</text><text x="28" y="48" font-size="10" text-anchor="middle" class="muted">×1</text>
+    </g>
+  </g>
+  <g class="g" data-show="2" data-focus="2">
+    <rect class="pool-box" x="530" y="450" width="200" height="105" rx="10"/>
+    <text x="542" y="472" font-size="13" font-weight="700" class="t-pool">descriptorPool</text>
+    <g class="g" data-show="2" data-hide="3">
+      <text x="542" y="500" font-size="12.5">남은 set: <tspan font-weight="700">1</tspan> (maxSets)</text>
+      <text x="542" y="522" font-size="12.5">남은 storage descriptor: <tspan font-weight="700">3</tspan></text>
+    </g>
+    <g class="g" data-show="3">
+      <text x="542" y="500" font-size="12.5">남은 set: <tspan font-weight="700">0</tspan> <tspan class="muted">(1개 할당)</tspan></text>
+      <text x="542" y="522" font-size="12.5">남은 storage descriptor: <tspan font-weight="700">0</tspan></text>
+    </g>
+    <text x="542" y="544" font-size="11" class="muted">layout 정보 없음, 수량만 있음</text>
+  </g>
+  <!-- allocate arrows -->
+  <g class="g" data-show="3" data-focus="3">
+    <path class="a-lay" marker-end="url(#m-lay)" d="M440,450 C440,428 520,428 540,414"/>
+    <text x="400" y="438" font-size="11" class="t-lay">pSetLayouts</text>
+    <path class="a-pool" marker-end="url(#m-pool)" d="M630,450 L630,414"/>
+    <text x="638" y="436" font-size="11" class="t-pool">descriptorPool</text>
+  </g>
+</svg>
+
+<div class="controls">
+  <button id="prev">← 이전</button>
+  <div class="dots" id="dots"></div>
+  <button id="next">다음 →</button>
+</div>
+
+<div class="explain">
+  <div>
+    <h3 id="st-title"></h3>
+    <div id="st-text"></div>
+  </div>
+  <div>
+    <div class="lbl">C++ 코드 (main.cpp)</div>
+    <pre><code id="st-code"></code></pre>
+    <div class="lbl">파이썬으로 치면</div>
+    <pre><code id="st-py"></code></pre>
+  </div>
+</div>
+</div>
+
+<h2>2. 헷갈리는 "개수" 여섯 개</h2>
+<p>06·07장에는 이름이 비슷한 개수 필드가 많습니다. <b>무엇을 세는지</b>가 다릅니다.</p>
+<div class="cards">
+  <div class="card" style="border-top:4px solid var(--lay)">
+    <h4><code>bindingCount</code> = <span class="big">3</span></h4>
+    <small>06장 · <code>DescriptorSetLayoutCreateInfo</code></small>
+    <p>layout 안 <b>binding 수</b>. binding 0, 1, 2.</p>
+  </div>
+  <div class="card" style="border-top:4px solid var(--lay)">
+    <h4><code>bindings[i].descriptorCount</code> = <span class="big">1</span></h4>
+    <small>06장 · <code>DescriptorSetLayoutBinding</code></small>
+    <p><b>binding 하나에</b> 들어가는 descriptor 수. 버퍼 안 원소 수(8)가 <b>아닙니다</b>.</p>
+  </div>
+  <div class="card" style="border-top:4px solid var(--pool)">
+    <h4><code>maxSets</code> = <span class="big">1</span></h4>
+    <small>07장 · <code>DescriptorPoolCreateInfo</code></small>
+    <p>pool에서 할당할 수 있는 <b>descriptor set의 최대 수</b>.</p>
+  </div>
+  <div class="card" style="border-top:4px solid var(--pool)">
+    <h4><code>poolSize.descriptorCount</code> = <span class="big">3</span></h4>
+    <small>07장 · <code>DescriptorPoolSize</code></small>
+    <p>pool <b>전체</b>의 storage descriptor 수. set 1개 × binding 3개 × binding당 1개 = 3.</p>
+  </div>
+  <div class="card" style="border-top:4px solid var(--set)">
+    <h4><code>descriptorSetCount</code> = <span class="big">1</span></h4>
+    <small>07장 · <code>DescriptorSetAllocateInfo</code></small>
+    <p>이번 호출로 <b>할당할 set 수</b>. <code>pSetLayouts</code>에 이 수만큼 layout을 줌.</p>
+  </div>
+  <div class="card" style="border-top:4px solid var(--set)">
+    <h4><code>writes[i].descriptorCount</code> = <span class="big">1</span></h4>
+    <small>07장 · <code>WriteDescriptorSet</code></small>
+    <p>이번 write로 <b>binding 하나에 써 넣을</b> descriptor 수. 06장 binding의 descriptorCount와 맞춤.</p>
+  </div>
+</div>
+<div class="callout">같은 이름 <code>descriptorCount</code>가 세 번 나옵니다. binding당(06 layout), pool 전체(07 pool), 이번 write 양(07 write)으로 구분하세요. pool 전체 3 = binding당 1 × binding 3 × set 1.</div>
+
+<h2>3. 코드의 <code>&amp;</code>와 <code>*</code>가 가리키는 것</h2>
+<p>복습 목록에 있던 세 줄입니다. 이름부터 정리하면 <code>&amp;</code>(ampersand, 앰퍼샌드)를 값 앞에 쓰면 <b>address-of operator(주소 연산자)</b>, <code>*</code>(asterisk, 애스터리스크)를 값 앞에 쓰면 <b>dereference(역참조)</b>, 즉 "안쪽을 꺼내라"입니다.</p>
+
+<div class="stage">
+<svg viewBox="0 0 900 380" role="img" aria-label="포인터와 RAII handle 꺼내기 그림">
+  <defs>
+    <marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--set)"/></marker>
+  </defs>
+  <!-- row 1: *inputA.buffer -->
+  <text x="20" y="30" font-weight="700" class="mono">bufferInfos[0].buffer = *inputA.buffer;</text>
+  <g transform="translate(20,45)">
+    <rect width="230" height="70" rx="10" class="buf-box"/>
+    <text x="12" y="22" font-size="12.5" class="mono">vk::raii::Buffer</text>
+    <text x="12" y="40" font-size="11.5" class="muted">RAII 객체 (소멸 시 자동 정리)</text>
+    <rect x="140" y="30" width="78" height="30" rx="5" class="buf-cell"/>
+    <text x="179" y="50" font-size="11.5" text-anchor="middle" class="mono">handle #A</text>
+  </g>
+  <path class="a-set" marker-end="url(#m2)" d="M250,90 L330,90"/>
+  <text x="290" y="80" font-size="13" text-anchor="middle" class="t-set mono" font-weight="700">*</text>
+  <g transform="translate(335,60)">
+    <rect width="110" height="56" rx="6" class="note-box"/>
+    <text x="55" y="25" font-size="11.5" text-anchor="middle" class="mono">vk::Buffer</text>
+    <text x="55" y="43" font-size="11.5" text-anchor="middle" class="mono">handle #A</text>
+  </g>
+  <text x="470" y="80" font-size="13">RAII 객체에서 <b>handle만 꺼내</b> bufferInfo에 넣음.</text>
+  <text x="470" y="100" font-size="13" class="muted">필드 타입이 handle인 <tspan class="mono">vk::Buffer</tspan>이기 때문</text>
+
+  <!-- row 2: &layout -->
+  <text x="20" y="165" font-weight="700" class="mono">allocInfo.pSetLayouts = &amp;layout;</text>
+  <g transform="translate(20,180)">
+    <rect width="230" height="56" rx="8" class="lay-box"/>
+    <text x="12" y="22" font-size="12" class="mono">layout (지역 변수)</text>
+    <text x="12" y="42" font-size="11.5" class="muted">주소 0x7ffd…10 에 있음</text>
+  </g>
+  <g transform="translate(335,180)">
+    <rect width="110" height="56" rx="6" class="slot"/>
+    <text x="55" y="22" font-size="11.5" text-anchor="middle" class="mono">pSetLayouts</text>
+    <text x="55" y="42" font-size="11.5" text-anchor="middle" class="mono">0x7ffd…10</text>
+  </g>
+  <path class="a-set" marker-end="url(#m2)" d="M335,208 L254,208"/>
+  <text x="295" y="198" font-size="13" text-anchor="middle" class="t-set mono" font-weight="700">&amp;</text>
+  <text x="470" y="200" font-size="13">layout 값을 복사하지 않고 <b>있는 곳(주소)</b>을 알려 줌.</text>
+  <text x="470" y="220" font-size="13" class="muted">p = pointer. "여기서부터 descriptorSetCount(1)개 읽어"</text>
+
+  <!-- row 3: &bufferInfos[i] -->
+  <text x="20" y="290" font-weight="700" class="mono">writes[i].pBufferInfo = &amp;bufferInfos[i];</text>
+  <g transform="translate(20,305)">
+    <rect x="0" width="74" height="56" rx="6" class="note-box"/><text x="37" y="33" font-size="11" text-anchor="middle" class="mono">[0]</text>
+    <rect x="78" width="74" height="56" rx="6" class="note-box"/><text x="115" y="33" font-size="11" text-anchor="middle" class="mono">[1]</text>
+    <rect x="156" width="74" height="56" rx="6" class="note-box"/><text x="193" y="33" font-size="11" text-anchor="middle" class="mono">[2]</text>
+  </g>
+  <g transform="translate(335,305)">
+    <rect width="110" height="56" rx="6" class="slot"/>
+    <text x="55" y="22" font-size="11.5" text-anchor="middle" class="mono">writes[1]</text>
+    <text x="55" y="42" font-size="11.5" text-anchor="middle" class="mono">.pBufferInfo</text>
+  </g>
+  <path class="a-set" marker-end="url(#m2)" d="M335,333 C290,333 150,375 135,364"/>
+  <text x="470" y="325" font-size="13">i번 write는 <b>bufferInfos[i]의 주소</b>를 가리킴.</text>
+  <text x="470" y="345" font-size="13" class="muted">그래서 bufferInfos 배열이 update가 끝날 때까지 살아 있어야 함</text>
+</svg>
+</div>
+
+<h2>4. 전체를 파이썬 한 덩어리로</h2>
+<pre><code><span style="color:var(--buf)"># 05장: 버퍼 = 실제 데이터 통</span>
+inputA, inputB, output = Buffer(32), Buffer(32), Buffer(32)
+
+<span style="color:var(--lay)"># 06장: descriptor set layout (binding 번호와 descriptor type만, buffer 이름 없음)</span>
+layout = {0: "storage", 1: "storage", 2: "storage"}
+
+<span style="color:var(--pool)"># 07장: descriptor pool (maxSets 1, storage descriptor 3개)</span>
+pool = Pool(max_sets=1, storage=3)
+
+<span style="color:var(--set)"># 07장: layout으로 descriptor set 1개 할당 (allocate)</span>
+descriptor_set = pool.allocate(layout)        <span style="color:var(--muted)"># {0: None, 1: None, 2: None}</span>
+
+<span style="color:var(--set)"># 07장: binding마다 descriptor 갱신 (update: 데이터 복사가 아니라 buffer 참조만)</span>
+descriptor_set[0] = (inputA, 0, 32)          <span style="color:var(--muted)"># (버퍼, offset, range)</span>
+descriptor_set[1] = (inputB, 0, 32)
+descriptor_set[2] = (output, 0, 32)
+
+<span style="color:var(--sh)"># 08장~: 셰이더는 set·binding 번호로만 접근</span>
+def add(s, i): s[2][i] = s[0][i] + s[1][i]</code></pre>
+
+<div class="callout">왜 layout과 set을 나눌까요? layout이 같으면 buffer만 다른 descriptor set을 여러 개 만들 수 있습니다. 파이썬 함수의 <b>시그니처(layout)</b>는 그대로 두고 <b>인자(set)</b>만 바꿔 호출하는 것과 같습니다. 09장 파이프라인은 이 layout(시그니처)을 보고 만들어집니다.</div>
+</main>
+
+<script>
+const steps = [
+  { t: "0. 시작: 버퍼 3개만 있음 (05장)",
+    x: "<p>05장에서 GPU가 볼 수 있는 메모리에 버퍼 3개를 만들었습니다. 각각 float 8개 = 32바이트입니다.</p><p>하지만 셰이더는 C++ 변수 이름 <code>inputA</code>를 모릅니다. 오른쪽 셰이더 자리는 아직 \"어느 게 어느 버퍼지?\" 상태입니다.</p>",
+    c: "Resource inputA, inputB, output;  // 각각 .buffer, .memory\nbufferSize = sizeof(float) * 8;   // 32",
+    p: "inputA = Buffer(32)\ninputB = Buffer(32)\noutput = Buffer(32)" },
+  { t: "1. Descriptor set layout (06장)",
+    x: "<p>descriptor set의 <b>binding 구성</b>만 정의합니다. \"binding 0, 1, 2: 각각 storage buffer descriptor 1개, compute 단계에서 사용.\"</p><p>여기에는 <b>buffer 이름도, 크기도, 입력/출력 구분도 없습니다.</b> 그래서 06장 코드에 <code>inputA</code>가 한 번도 안 나옵니다.</p>",
+    c: "bindings[i].binding = i;            // binding 번호\nbindings[i].descriptorType = eStorageBuffer;\nbindings[i].descriptorCount = 1;    // binding당 descriptor 1개\nbindings[i].stageFlags = eCompute;\n\nlayoutInfo.bindingCount = 3;\nlayoutInfo.pBindings = bindings.data();\ndescriptorSetLayout = vk::raii::DescriptorSetLayout(device, layoutInfo);",
+    p: "layout = {0: \"storage\", 1: \"storage\", 2: \"storage\"}" },
+  { t: "2. Descriptor pool (07장)",
+    x: "<p>descriptor set은 <b>descriptor pool</b>에서 할당합니다. pool은 생성할 때 수량만 정합니다.</p><ul><li><code>maxSets = 1</code>: 할당할 수 있는 descriptor set 최대 1개</li><li><code>poolSize.descriptorCount = 3</code>: pool 전체의 storage buffer descriptor 3개</li></ul><p>pool은 layout을 모릅니다. descriptor type별 수량만 압니다.</p>",
+    c: "poolSize.type = eStorageBuffer;\npoolSize.descriptorCount = 3;      // pool 전체 storage descriptor 3개\n\npoolInfo.maxSets = 1;\npoolInfo.poolSizeCount = 1;\npoolInfo.pPoolSizes = &poolSize;\ndescriptorPool = vk::raii::DescriptorPool(device, poolInfo);",
+    p: "pool = Pool(max_sets=1, storage=3)" },
+  { t: "3. Descriptor set 할당 (allocate)",
+    x: "<p><code>allocateDescriptorSets</code>: descriptorPool에서 layout을 지정해 descriptor set 1개를 할당합니다.</p><p>결과로 <b>binding 3개를 가진 descriptor set</b>이 생기지만 각 binding은 아직 <b>비어 있습니다</b>. pool의 남은 수량은 set 0, storage descriptor 0이 됩니다.</p><p><code>*descriptorSetLayout</code>: RAII 객체에서 handle을 꺼냄 (dereference)<br><code>&amp;layout</code>: 그 handle의 주소를 넘김 (address-of, 아래 3번 그림)</p>",
+    c: "const vk::DescriptorSetLayout layout = *descriptorSetLayout;\n\nallocInfo.descriptorPool = *descriptorPool;\nallocInfo.descriptorSetCount = 1;\nallocInfo.pSetLayouts = &layout;\ndescriptorSets = device.allocateDescriptorSets(allocInfo);",
+    p: "descriptor_set = pool.allocate(layout)\n# {0: None, 1: None, 2: None}" },
+  { t: "4. Descriptor 정보 준비 (bufferInfos)",
+    x: "<p>각 binding에 들어갈 <b>descriptor 정보</b>를 <code>vk::DescriptorBufferInfo</code>로 준비합니다: <b>buffer</b>, <b>offset</b>(시작 위치), <b>range</b>(바이트 수).</p><p>아직 descriptor set에 쓰지는 않았습니다. 지역 변수에 준비만 한 상태입니다.</p><p><code>*inputA.buffer</code>: RAII 객체에서 buffer handle(<code>vk::Buffer</code>)만 꺼냄</p>",
+    c: "bufferInfos[0].buffer = *inputA.buffer;\nbufferInfos[1].buffer = *inputB.buffer;\nbufferInfos[2].buffer = *output.buffer;\nfor (auto& bufferInfo : bufferInfos) {\n    bufferInfo.offset = 0;\n    bufferInfo.range = bufferSize;  // 32\n}",
+    p: "infos = [(inputA, 0, 32),\n         (inputB, 0, 32),\n         (output, 0, 32)]" },
+  { t: "5. Descriptor set 갱신 (writes + updateDescriptorSets)",
+    x: "<p><code>vk::WriteDescriptorSet</code>: \"<b>어느 set</b>(dstSet)의 <b>몇 번 binding</b>(dstBinding)에 <b>어떤 descriptor 정보</b>(pBufferInfo)를 쓸지\"를 담은 구조체. binding마다 하나씩, 3개입니다.</p><p><code>updateDescriptorSets</code>가 실행되면 각 binding에 descriptor가 기록됩니다. <b>숫자 데이터를 복사하는 게 아니라 buffer 참조만</b> 연결됩니다.</p>",
+    c: "for (i = 0; i < 3; ++i) {\n    writes[i].dstSet = *descriptorSets[0];   // 어느 셋\n    writes[i].dstBinding = i;                // 몇 번 binding\n    writes[i].descriptorType = eStorageBuffer;\n    writes[i].descriptorCount = 1;\n    writes[i].pBufferInfo = &bufferInfos[i]; // 어떤 descriptor 정보\n}\ndevice.updateDescriptorSets(writes, {});",
+    p: "for i in range(3):\n    descriptor_set[i] = infos[i]   # 참조만, 복사 X" },
+  { t: "6. 미리보기: 셰이더는 번호로 찾아옴 (08장)",
+    x: "<p>08장 <code>add.comp</code>의 <code>layout(set = 0, binding = N)</code>이 이 descriptor set의 binding N을 가리킵니다.</p><p>GLSL 쪽 이름(<code>resultBuffer</code>)과 C++ 쪽 이름(<code>output</code>)이 달라도 상관없습니다. <b>오직 set·binding 번호로</b> 연결됩니다.</p><p>셰이더 → binding → descriptor → buffer 순서로 따라가면 실제 데이터에 도착합니다.</p>",
+    c: "// add.comp (GLSL)\nlayout(set = 0, binding = 0, std430) readonly buffer InputA\n{ float values[]; } inputA;\n...\nresultBuffer.values[index] =\n    inputA.values[index] + inputB.values[index];",
+    p: "def add(s, i):\n    s[2][i] = s[0][i] + s[1][i]   # 번호로만 접근" },
+];
+
+// buffer cells
+document.querySelectorAll("#buffers .cells").forEach(g => {
+  for (let i = 0; i < 8; i++) {
+    const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    r.setAttribute("x", 12 + i * 25.5); r.setAttribute("y", 38);
+    r.setAttribute("width", 22); r.setAttribute("height", 28); r.setAttribute("rx", 3);
+    r.setAttribute("class", "buf-cell");
+    g.appendChild(r);
+  }
+});
+
+const dots = document.getElementById("dots");
+steps.forEach((_, i) => {
+  const b = document.createElement("button");
+  b.textContent = i; b.onclick = () => go(i);
+  dots.appendChild(b);
+});
+let cur = 0;
+function go(n) {
+  cur = Math.max(0, Math.min(steps.length - 1, n));
+  document.querySelectorAll("#stepper [data-show]").forEach(el => {
+    const s = +el.dataset.show, h = el.dataset.hide ? +el.dataset.hide : 99;
+    el.classList.toggle("hidden", !(cur >= s && cur < h));
+  });
+  document.querySelectorAll("[data-focus]").forEach(el => {
+    const f = el.dataset.focus.split(" ").map(Number);
+    el.classList.toggle("focus", f.includes(cur));
+  });
+  const s = steps[cur];
+  document.getElementById("st-title").textContent = s.t;
+  document.getElementById("st-text").innerHTML = s.x;
+  document.getElementById("st-code").textContent = s.c;
+  document.getElementById("st-py").textContent = s.p;
+  [...dots.children].forEach((b, i) => b.classList.toggle("on", i === cur));
+  document.getElementById("prev").disabled = cur === 0;
+  document.getElementById("next").disabled = cur === steps.length - 1;
+}
+document.getElementById("prev").onclick = () => go(cur - 1);
+document.getElementById("next").onclick = () => go(cur + 1);
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") go(cur + 1);
+  if (e.key === "ArrowLeft") go(cur - 1);
+});
+go(0);
+</script>
+</body>
+</html>
