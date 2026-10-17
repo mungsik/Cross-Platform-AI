@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 // TODO: <fstream> 헤더를 추가합니다.
+#include <fstream>
 
 class ComputeApplication
 {
@@ -49,6 +50,7 @@ private:
     vk::raii::DescriptorPool descriptorPool = nullptr;
     std::vector<vk::raii::DescriptorSet> descriptorSets;
     // TODO: shaderModule 멤버를 추가합니다.
+    vk::raii::ShaderModule shaderModule = nullptr;
 
     bool initVulkan()
     {
@@ -59,7 +61,8 @@ private:
             && createStorageBuffers()
             && createDescriptorSetLayout()
             && createDescriptorPool()
-            && createDescriptorSets(); // TODO: createShaderModule() 호출을 이어 붙입니다.
+            && createDescriptorSets() // TODO: createShaderModule() 호출을 이어 붙입니다.
+            && createShaderModule();
     }
 
     bool checkValidationLayerSupport()
@@ -374,6 +377,35 @@ private:
         return true;
     }
     // TODO: createShaderModule() 함수를 추가합니다.
+    bool createShaderModule()
+    {
+        std::ifstream file(ADD_SHADER_PATH, std::ios::ate | std::ios::binary);
+        if (!file)
+        {
+            std::cerr << "Cannot open shader: " << ADD_SHADER_PATH << '\n';
+            return false;
+        }
+        const std::streamsize byteCount = file.tellg();
+        if (byteCount <= 0 || byteCount % sizeof(std::uint32_t) != 0)
+        {
+            std::cerr << "Invalid SPIR-V byte count.\n";
+            return false;
+        }
+        std::vector<std::uint32_t> code(static_cast<std::size_t>(byteCount) / sizeof(std::uint32_t));
+        file.seekg(0);
+        if (!file.read(reinterpret_cast<char*>(code.data()), byteCount))
+        {
+            std::cerr << "Cannot read SPIR-V file.\n";
+            return false;
+        }
+
+        vk::ShaderModuleCreateInfo moduleInfo{};
+        moduleInfo.codeSize = static_cast<std::size_t>(byteCount);
+        moduleInfo.pCode = code.data();
+        shaderModule = vk::raii::ShaderModule(device, moduleInfo); // C API: vkCreateShaderModule
+        std::cout << "Shader module created: " << moduleInfo.codeSize << " bytes.\n";
+        return true;
+    }
 };
 
 int main()
