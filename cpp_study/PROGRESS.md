@@ -25,20 +25,29 @@ git push     # 작업 끝난 후
 - 회사 컴퓨터에 upstream 등록: `git remote add upstream https://github.com/Pseudo-Lab/Cross-Platform-AI.git`
 - 환경(Vulkan SDK, CMake, 컴파일러)은 컴퓨터마다 [00. 환경 설정](../examples/00-env-settings/README.md)을 먼저 확인
 
-## GCP 인스턴스 `vulkan-tutorial` (2026-10-13 존 이전)
+## GCP 인스턴스 `vulkan-tutorial` (b·c 존에 하나씩, 2026-10-17 기준 b 사용 중)
 
-b 존(`asia-northeast3-b`)에 T4 재고가 없어(STOCKOUT) 켜지지 않아서, 스냅샷으로 **c 존(`asia-northeast3-c`)**에 같은 이름으로 다시 만들었습니다.
+같은 이름의 인스턴스가 b 존(`asia-northeast3-b`)과 c 존(`asia-northeast3-c`)에 하나씩 있습니다. 둘 다 n1-standard-4 + T4이고, T4 재고가 없으면(STOCKOUT) 켜지지 않아서 켜지는 쪽을 씁니다.
 
-- 그대로: 머신(n1-standard-4 + T4), 디스크 내용(홈, SDK, 저장소), 외부 고정 IP `34.47.80.216`, 서비스 계정
-- 바뀜: 존 b → c, 내부 IP `10.178.0.12` → `10.178.0.13`, SSH 호스트 키
-- 켜기: `gcloud compute instances start vulkan-tutorial --zone=asia-northeast3-c`
-- 남은 리소스: b 존 옛 인스턴스·디스크(꺼짐), 스냅샷 `vulkan-tutorial-snap-20261013` → 정리 여부 미정
+- 2026-10-13: b 존 재고 없음 → 스냅샷 `vulkan-tutorial-snap-20261013`으로 c 존에 새로 만듦
+- 2026-10-17: c 존 재고 없음 → b 존 옛 인스턴스를 켜서 사용 (코드는 `git pull`로 최신화)
+- **두 디스크는 따로입니다.** push 안 한 파일은 다른 존 인스턴스에 없음 → 작업 끝나면 꼭 push
 
-**회사 컴퓨터에서 처음 접속할 때 할 일** (집 Mac 완료, 회사 컴퓨터도 2026-10-14 접속 확인)
+**존을 바꿀 때 할 일** (켜는 쪽 존 이름으로)
 
-- [x] `~/.ssh/config`의 `ProxyCommand` 줄 `--zone=asia-northeast3-b` → `--zone=asia-northeast3-c`
-- [x] 호스트 키 경고가 뜨면 `ssh-keygen -R vulkan-tutorial` 후 다시 접속
-- [x] `gcloud compute ssh`를 쓰면 `--zone=asia-northeast3-c`로 지정
+1. 켜기: `gcloud compute instances start vulkan-tutorial --zone=asia-northeast3-<존>`
+2. 외부 고정 IP `34.47.80.216`을 켜는 쪽으로 옮기기. **IP가 없으면 인터넷이 안 됨** → `git pull`이 멈추고 VS Code가 "Copying VS Code Server to host with scp"에서 멈춤
+
+   ```sh
+   gcloud compute instances delete-access-config vulkan-tutorial --zone=asia-northeast3-<안 쓰는 존> --access-config-name=external-nat
+   gcloud compute instances add-access-config vulkan-tutorial --zone=asia-northeast3-<켜는 존> --access-config-name=external-nat --address=34.47.80.216
+   ```
+
+3. `~/.ssh/config`의 `ProxyCommand` 줄 `--zone=` 바꾸기 (Mac·회사 컴퓨터 둘 다)
+4. 호스트 키가 존마다 달라서 경고가 뜨면 `ssh-keygen -R vulkan-tutorial` 후 다시 접속
+5. VM에서 `git pull`
+
+현재(2026-10-17): IP는 b 존에 붙어 있음, 집 Mac `~/.ssh/config`는 b 존으로 바꿈, **회사 컴퓨터 `~/.ssh/config`는 아직 c 존** → 회사에서 접속할 때 3·4번 하기
 
 ## 현재 위치 (2026-10-14 기준)
 
