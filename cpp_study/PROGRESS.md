@@ -25,12 +25,13 @@ git push     # 작업 끝난 후
 - 회사 컴퓨터에 upstream 등록: `git remote add upstream https://github.com/Pseudo-Lab/Cross-Platform-AI.git`
 - 환경(Vulkan SDK, CMake, 컴파일러)은 컴퓨터마다 [00. 환경 설정](../examples/00-env-settings/README.md)을 먼저 확인
 
-## GCP 인스턴스 `vulkan-tutorial` (b·c 존에 하나씩, 2026-10-17 기준 b 사용 중)
+## GCP 인스턴스 `vulkan-tutorial` (b·c 존에 하나씩, 2026-10-18 기준 c 사용 중)
 
 같은 이름의 인스턴스가 b 존(`asia-northeast3-b`)과 c 존(`asia-northeast3-c`)에 하나씩 있습니다. 둘 다 n1-standard-4 + T4이고, T4 재고가 없으면(STOCKOUT) 켜지지 않아서 켜지는 쪽을 씁니다.
 
 - 2026-10-13: b 존 재고 없음 → 스냅샷 `vulkan-tutorial-snap-20261013`으로 c 존에 새로 만듦
 - 2026-10-17: c 존 재고 없음 → b 존 옛 인스턴스를 켜서 사용 (코드는 `git pull`로 최신화)
+- 2026-10-18: c 존 인스턴스에서 09장 작업 (IP·`~/.ssh/config` 상태는 접속할 때 다시 확인)
 - **두 디스크는 따로입니다.** push 안 한 파일은 다른 존 인스턴스에 없음 → 작업 끝나면 꼭 push
 
 **존을 바꿀 때 할 일** (켜는 쪽 존 이름으로)
