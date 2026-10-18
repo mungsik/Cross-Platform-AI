@@ -59,7 +59,9 @@ private:
     BufferResource inputA;
     BufferResource inputB;
     BufferResource output;
-    // TODO: uploadA, uploadB, readback 멤버를 추가합니다.
+    BufferResource uploadA;
+    BufferResource uploadB;
+    BufferResource readback;
     vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
     vk::raii::DescriptorPool descriptorPool = nullptr;
     std::vector<vk::raii::DescriptorSet> descriptorSets;
@@ -242,32 +244,33 @@ private:
         return true;
     }
 
-    // TODO: 역할별 usage와 memory properties로 버퍼를 생성합니다.
     bool createStorageBuffers()
     {
-        const std::array buffers = {&inputA, &inputB, &output};
-        for (auto* buffer : buffers)
-        {
-            if (!createBuffer(bufferSize, *buffer))
-            {
-                return false;
-            }
-        }
-        return true;
+        const auto hostMemory = vk::MemoryPropertyFlagBits::eHostVisible
+                              | vk::MemoryPropertyFlagBits::eHostCoherent;
+        const auto deviceMemory = vk::MemoryPropertyFlagBits::eDeviceLocal;
+        const auto inputUsage = vk::BufferUsageFlagBits::eStorageBuffer
+                              | vk::BufferUsageFlagBits::eTransferDst;
+        const auto outputUsage = vk::BufferUsageFlagBits::eStorageBuffer
+                               | vk::BufferUsageFlagBits::eTransferSrc;
+        return createBuffer(bufferSize, inputUsage, deviceMemory, inputA)
+            && createBuffer(bufferSize, inputUsage, deviceMemory, inputB)
+            && createBuffer(bufferSize, outputUsage, deviceMemory, output)
+            && createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, hostMemory, uploadA)
+            && createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, hostMemory, uploadB)
+            && createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst, hostMemory, readback);
     }
 
-    // TODO: usage, properties 인자를 추가하고 findMemoryType() 실패 메시지를 수정합니다.
-    bool createBuffer(vk::DeviceSize size, BufferResource& resource)
+    bool createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage,
+                      vk::MemoryPropertyFlags properties, BufferResource& resource)
     {
         vk::BufferCreateInfo bufferInfo{};
         bufferInfo.size = size;
-        bufferInfo.usage = vk::BufferUsageFlagBits::eStorageBuffer;
+        bufferInfo.usage = usage;
         bufferInfo.sharingMode = vk::SharingMode::eExclusive;
         resource.buffer = vk::raii::Buffer(device, bufferInfo); // C API: vkCreateBuffer
 
         const auto requirements = resource.buffer.getMemoryRequirements(); // C API: vkGetBufferMemoryRequirements
-        const auto properties = vk::MemoryPropertyFlagBits::eHostVisible
-            | vk::MemoryPropertyFlagBits::eHostCoherent;
         std::uint32_t memoryTypeIndex = 0;
         if (!findMemoryType(requirements.memoryTypeBits, properties, memoryTypeIndex))
         {
@@ -299,7 +302,7 @@ private:
             }
         }
 
-        std::cerr << "No compatible HOST_VISIBLE | HOST_COHERENT memory type found.\n";
+        std::cerr << "No compatible memory type for requested properties.\n";
         return false;
     }
 
@@ -462,7 +465,26 @@ private:
         auto& cmd = commandBuffers[0];
         vk::CommandBufferBeginInfo beginInfo{};
         cmd.begin(beginInfo); // C API: vkBeginCommandBuffer
-        // TODO: 입력 복사와 transfer write → compute read 배리어를 기록합니다.
+        vk::BufferCopy copyRegion{};
+        copyRegion.size = bufferSize;
+        cmd.copyBuffer(*uploadA.buffer, *inputA.buffer, copyRegion); // C API: vkCmdCopyBuffer
+        cmd.copyBuffer(*uploadB.buffer, *inputB.buffer, copyRegion); // C API: vkCmdCopyBuffer
+
+        std::array<vk::BufferMemoryBarrier, 2> uploadBarriers{};
+        uploadBarriers[0].buffer = *inputA.buffer;
+        uploadBarriers[1].buffer = *inputB.buffer;
+        for (auto& barrier : uploadBarriers)
+        {
+            barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+            barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.offset = 0;
+            barrier.size = bufferSize;
+        }
+        cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
+                            vk::PipelineStageFlagBits::eComputeShader, {}, {}, uploadBarriers, {}); // C API: vkCmdPipelineBarrier
+
         cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *computePipeline); // C API: vkCmdBindPipeline
         cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout,
                                0, *descriptorSets[0], {}); // C API: vkCmdBindDescriptorSets
@@ -471,16 +493,27 @@ private:
                                         0, count); // C API: vkCmdPushConstants
         cmd.dispatch(groupCount, 1, 1); // C API: vkCmdDispatch
 
-        // TODO: 이 배리어를 출력 복사와 두 단계 배리어로 교체합니다.
+        vk::BufferMemoryBarrier downloadBarrier{};
+        downloadBarrier.srcAccessMask = vk::AccessFlagBits::eShaderWrite;
+        downloadBarrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
+        downloadBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        downloadBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        downloadBarrier.buffer = *output.buffer;
+        downloadBarrier.offset = 0;
+        downloadBarrier.size = bufferSize;
+        cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+                            vk::PipelineStageFlagBits::eTransfer, {}, {}, downloadBarrier, {}); // C API: vkCmdPipelineBarrier
+        cmd.copyBuffer(*output.buffer, *readback.buffer, copyRegion); // C API: vkCmdCopyBuffer
+
         vk::BufferMemoryBarrier hostBarrier{};
-        hostBarrier.srcAccessMask = vk::AccessFlagBits::eShaderWrite;
+        hostBarrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
         hostBarrier.dstAccessMask = vk::AccessFlagBits::eHostRead;
         hostBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         hostBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        hostBarrier.buffer = *output.buffer;
+        hostBarrier.buffer = *readback.buffer;
         hostBarrier.offset = 0;
         hostBarrier.size = bufferSize;
-        cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+        cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
                             vk::PipelineStageFlagBits::eHost, {}, {}, hostBarrier, {}); // C API: vkCmdPipelineBarrier
         cmd.end(); // C API: vkEndCommandBuffer
         std::cout << "Command buffer recorded: " << groupCount << " workgroups.\n";
@@ -492,7 +525,6 @@ private:
         return true;
     }
 
-    // TODO: CPU 쓰기 대상을 uploadA, uploadB, readback으로 바꿉니다.
     bool writeInputs(std::uint32_t round)
     {
         std::array<float, elementCount> valuesA{};
@@ -504,9 +536,9 @@ private:
             valuesA[i] = static_cast<float>(i + round);
             valuesB[i] = 10.0f + static_cast<float>(i + round);
         }
-        return writeBuffer(inputA, valuesA)
-            && writeBuffer(inputB, valuesB)
-            && writeBuffer(output, initialOutput);
+        return writeBuffer(uploadA, valuesA)
+            && writeBuffer(uploadB, valuesB)
+            && writeBuffer(readback, initialOutput);
     }
 
     bool submitAndWait()
@@ -526,13 +558,12 @@ private:
         return true;
     }
 
-    // TODO: output 대신 readback 메모리를 읽습니다.
     bool verifyOutput(std::uint32_t round)
     {
         std::array<float, elementCount> results{};
-        void* mapped = output.memory.mapMemory(0, bufferSize); // C API: vkMapMemory
+        void* mapped = readback.memory.mapMemory(0, bufferSize); // C API: vkMapMemory
         std::memcpy(results.data(), mapped, static_cast<std::size_t>(bufferSize));
-        output.memory.unmapMemory(); // C API: vkUnmapMemory
+        readback.memory.unmapMemory(); // C API: vkUnmapMemory
         for (std::uint32_t i = 0; i < elementCount; ++i)
         {
             const float a = static_cast<float>(i + round);

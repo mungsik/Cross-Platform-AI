@@ -52,7 +52,12 @@ git push     # 작업 끝난 후
 
 ## 현재 위치 (2026-10-18 기준)
 
-**11. Dispatch와 동기화 완료 → 다음: [12. Staging buffers](../examples/12-staging-buffers/README.md)**
+**12. Staging buffers 완료 → 다음: [13. Multiple dispatches](../examples/13-multiple-dispatches/README.md)**
+
+- 12장: `examples/12-staging-buffers/main.cpp` 빌드·실행 확인 (Round 1·2 verified, 결과는 11장과 동일, 검증 레이어·동기화 검증 경고 없음, Debug 빌드). `elementCount` 1·65도 임시 복사본으로 통과 확인
+- 12장: TODO 전부(`uploadA`·`uploadB`·`readback`, `createBuffer()` usage·properties 인자, 6개 버퍼 생성, 입력 복사·출력 복사와 배리어 3개, `writeInputs()`·`verifyOutput()` 대상 변경)를 Claude가 채움 → 코드 읽으며 복습 필요
+- 12장 실행 결과 터미널 캡처 제출하기 (README 요구사항)
+- 2026-10-18 작업 끝에 c 존 인스턴스 중지함
 
 - 11장: `examples/11-dispatch-synchronization/main.cpp` 빌드·실행 확인 (`Round 1: verified 8 elements; first=10, last=24` / `Round 2: verified 8 elements; first=12, last=26`, 검증 레이어·동기화 검증(`VK_VALIDATION_VALIDATE_SYNC=1`) 경고 없음, Debug 빌드). `elementCount` 1·64·65도 임시 복사본으로 통과 확인 (65는 2 workgroups)
 - 11장: TODO 전부(헤더, `fence`, 배리어, `writeBuffer()`·`writeInputs()`·`submitAndWait()`·`verifyOutput()`, `run()` 2회 반복)를 Claude가 채움 → 코드 읽으며 복습 필요
@@ -100,13 +105,14 @@ git push     # 작업 끝난 후
 | 09. Compute pipeline | ✅ | 빌드·실행 확인 (`Compute pipeline created.`). 레이아웃 생성 이후는 Claude가 채움 |
 | 10. Command buffers | ✅ | 빌드·실행 확인 (`Command buffer recorded: 1 workgroups.`). TODO 전부 Claude가 채움 |
 | 11. Dispatch와 동기화 | ✅ | 빌드·실행 확인 (Round 1·2 verified, 첫 GPU 벡터 덧셈). TODO 전부 Claude가 채움 |
+| 12. Staging buffers | ✅ | 빌드·실행 확인 (Round 1·2 verified, DeviceLocal 연산 버퍼 + 업로드·리드백). TODO 전부 Claude가 채움 |
 
 ## 빌드 명령 (Linux)
 
 ```sh
 cd examples/<장 폴더>
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physical_devices, 04: logical_device_example, 05: buffers_memory_example, 06: descriptor_layout_example, 07: descriptor_sets_example, 08: compute_shader_example, 09: compute_pipeline_example, 10: command_buffers_example, 11: dispatch_synchronization_example
+cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physical_devices, 04: logical_device_example, 05: buffers_memory_example, 06: descriptor_layout_example, 07: descriptor_sets_example, 08: compute_shader_example, 09: compute_pipeline_example, 10: command_buffers_example, 11: dispatch_synchronization_example, 12: staging_buffers_example
 ./build/main
 ```
 
@@ -129,6 +135,7 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 - [08-compute-shader.md](08-compute-shader.md): `add.comp`(GLSL compute shader), 바깥 반복문 대신 병렬 실행, Invocation·Workgroup(`local_size_x`), 남는 invocation과 범위 검사, CUDA 대응표, push constant, SPIR-V, 8장 요약
 - [10-command-buffers.md](10-command-buffers.md): command buffer·command pool, primary/secondary 레벨 표, command buffer lifecycle(상태 표·다이어그램), `vkCmd*`
 - [11-dispatch-synchrozation.md](11-dispatch-synchrozation.md): buffer vs command buffer, fence·memory barrier, 동기화가 필요한 이유 (작성 중)
+- [12-staging-buffers.md](12-staging-buffers.md): 스테이징·리드백 버퍼 (작성 중)
 - 그림 정리 (브라우저로 열기): [vulkan-overview.html](vulkan-overview.html) 00~07장 총정리(전체 지도·검증 레이어·큐 패밀리·버퍼/메모리·RAII 정리 순서·C++ 문법 모음), [descriptor-visual.html](descriptor-visual.html) 06·07장 디스크립터 단계별 그림
 
 노트에 아직 정리하지 않은, 대화에서 다룬 주제:
@@ -162,3 +169,4 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 - 코드는 README를 보며 직접 채웁니다. 정답 코드를 대신 써 주기보다 문법 설명과 실수 지적을 원합니다.
 - (2026-10-18 10장 대화) 커맨드 버퍼는 기록 후 큐에 submit, `allocateCommandBuffers`가 vector를 반환하는 이유(descriptor set과 같은 구조), primary는 "하나뿐"이 아니라 "큐에 직접 제출 가능"(여러 개 가능, 실행 스크립트 vs import 모듈 비유), begin = recording 상태로 전환(파일 open 비유), 할당 전·`initial`·reset·`invalid` 상태, `vkCmd*` 접두사(기록만 함, vulkan-hpp에선 `cmd.` 멤버 함수), `bindPipeline`의 bind point(`eCompute`/`eGraphics`)·`*computePipeline`(raii에서 핸들 꺼내기), 원소 수를 push constant로 넘기는 이유(64 인보케이션 중 8개만 유효, 원소 수는 배열이 아니라 길이 숫자 하나), dispatch(실제 계산을 일으키는 유일한 명령, 인자는 워크그룹 수, `gl_GlobalInvocationID`), 워크그룹 vs 인보케이션, 실행 결과 해석(제출 전이라 계산 결과 없음), 10장까지 총정리
 - (2026-10-18 11장 대화) 배리어 대상은 `buffer`+`offset`+`size`로 정함(`DescriptorBufferInfo`와 같은 구조, `VK_WHOLE_SIZE`), output만 배리어(GPU 쓰기→CPU 읽기, 입력은 submit 시 host write 보장), 커맨드 버퍼 ≠ `vk::Buffer`(명령 vs 데이터, 메모리는 pool이 관리, buffer는 참조만·push constant만 값 복사), `pipelineBarrier`의 커맨드 버퍼는 `cmd`, 버퍼 생성과 입력 쓰기 분리(round마다 입력 변경·NaN 초기화), 두 번 실행하는 이유(반복 제출 패턴, 펜스 리셋·재제출·덮어쓰기 시점은 두 번째에만 드러남), CPU 기준값 비교(검증 레이어는 수식을 모름, 테스트 용도라 배포 시엔 안 함, 작은 입력·경계 조건), 11장 총정리(완료=펜스, 보임=배리어, 캐시=HOST_COHERENT)
+- (2026-10-18 12장 대화) 스테이징이 필요한 이유(외장 GPU에서 HostVisible은 느림, DeviceLocal=VRAM은 map 불가, PyTorch `.to("cuda")` 비유), 버퍼 6개와 usage(`eTransferSrc`/`eTransferDst`) vs 메모리 속성, `copyBuffer`는 GPU가 하는 복사(기록만), 배리어 3개(업로드→셰이더, 셰이더→복사, 복사→host)와 대상은 복사로 쓰인 쪽, descriptor는 그대로, 결과는 11장과 동일, 작은 입력·UMA에선 스테이징이 손해일 수 있음, dispatch 복습, "CPU가 작성한 값" = C++ 코드가 memcpy로 upload 버퍼에 쓴 입력 데이터
