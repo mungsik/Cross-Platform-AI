@@ -5,7 +5,8 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
-// TODO: <cmath>, <limits> 헤더를 추가합니다.
+#include <cmath>
+#include <limits>
 #include <fstream>
 #include <optional>
 #include <utility>
@@ -16,11 +17,22 @@ class ComputeApplication
 public:
     bool run()
     {
-        if (!initVulkan())
+        if (!initVulkan() || !recordCommandBuffer())
         {
             return false;
         }
-        return recordCommandBuffer(); // TODO: run()을 입력 갱신·제출·대기·검증 반복으로 바꿉니다.
+        for (std::uint32_t round = 0; round < 2; ++round)
+        {
+            if (round != 0)
+            {
+                device.resetFences(*fence); // C API: vkResetFences
+            }
+            if (!writeInputs(round) || !submitAndWait() || !verifyOutput(round))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
 private:
@@ -55,7 +67,7 @@ private:
     vk::raii::Pipeline computePipeline = nullptr;
     vk::raii::CommandPool commandPool = nullptr;
     std::vector<vk::raii::CommandBuffer> commandBuffers;
-    // TODO: fence 멤버를 추가합니다.
+    vk::raii::Fence fence = nullptr;
 
     bool initVulkan()
     {
@@ -71,7 +83,8 @@ private:
             && createPipelineLayout()
             && createComputePipeline()
             && createCommandPool()
-            && allocateCommandBuffer(); // TODO: createFence() 호출을 이어 붙입니다.
+            && allocateCommandBuffer()
+            && createFence();
     }
 
     bool checkValidationLayerSupport()
@@ -239,23 +252,6 @@ private:
             }
         }
 
-        // TODO: createStorageBuffers()의 초기 데이터 기록을 writeInputs()로 옮깁니다.
-        std::array<float, elementCount> valuesA{};
-        std::array<float, elementCount> valuesB{};
-        const std::array<float, elementCount> initialOutput{};
-        for (std::uint32_t i = 0; i < elementCount; ++i)
-        {
-            valuesA[i] = static_cast<float>(i);
-            valuesB[i] = 10.0f + static_cast<float>(i);
-        }
-
-        if (!writeAndVerifyBuffer(inputA, valuesA, "Input A")
-            || !writeAndVerifyBuffer(inputB, valuesB, "Input B")
-            || !writeAndVerifyBuffer(output, initialOutput, "Output (initial)"))
-        {
-            return false;
-        }
-
         return true;
     }
 
@@ -305,25 +301,11 @@ private:
         return false;
     }
 
-    // TODO: writeAndVerifyBuffer()를 writeBuffer()로 교체합니다.
-    bool writeAndVerifyBuffer(BufferResource& resource,
-                              const std::array<float, elementCount>& values,
-                              const char* label)
+    bool writeBuffer(BufferResource& resource, const std::array<float, elementCount>& values)
     {
         void* mapped = resource.memory.mapMemory(0, bufferSize); // C API: vkMapMemory
         std::memcpy(mapped, values.data(), static_cast<std::size_t>(bufferSize));
         resource.memory.unmapMemory(); // C API: vkUnmapMemory
-
-        std::array<float, elementCount> readback{};
-        mapped = resource.memory.mapMemory(0, bufferSize); // C API: vkMapMemory
-        std::memcpy(readback.data(), mapped, static_cast<std::size_t>(bufferSize));
-        resource.memory.unmapMemory(); // C API: vkUnmapMemory
-        if (readback != values)
-        {
-            std::cerr << label << ": CPU data verification failed.\n";
-            return false;
-        }
-
         return true;
     }
     bool createDescriptorSetLayout()
@@ -485,12 +467,84 @@ private:
         cmd.pushConstants<std::uint32_t>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute,
                                         0, count); // C API: vkCmdPushConstants
         cmd.dispatch(groupCount, 1, 1); // C API: vkCmdDispatch
-        // TODO: compute write → host read 배리어를 기록합니다.
+        vk::BufferMemoryBarrier hostBarrier{};
+        hostBarrier.srcAccessMask = vk::AccessFlagBits::eShaderWrite;
+        hostBarrier.dstAccessMask = vk::AccessFlagBits::eHostRead;
+        hostBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        hostBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        hostBarrier.buffer = *output.buffer;
+        hostBarrier.offset = 0;
+        hostBarrier.size = bufferSize;
+        cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+                            vk::PipelineStageFlagBits::eHost, {}, {}, hostBarrier, {}); // C API: vkCmdPipelineBarrier
         cmd.end(); // C API: vkEndCommandBuffer
         std::cout << "Command buffer recorded: " << groupCount << " workgroups.\n";
         return true;
     }
-    // TODO: createFence(), writeInputs(), submitAndWait(), verifyOutput()을 추가합니다.
+    bool createFence()
+    {
+        fence = vk::raii::Fence(device, vk::FenceCreateInfo{}); // C API: vkCreateFence
+        return true;
+    }
+
+    bool writeInputs(std::uint32_t round)
+    {
+        std::array<float, elementCount> valuesA{};
+        std::array<float, elementCount> valuesB{};
+        std::array<float, elementCount> initialOutput{};
+        initialOutput.fill(std::numeric_limits<float>::quiet_NaN());
+        for (std::uint32_t i = 0; i < elementCount; ++i)
+        {
+            valuesA[i] = static_cast<float>(i + round);
+            valuesB[i] = 10.0f + static_cast<float>(i + round);
+        }
+        return writeBuffer(inputA, valuesA)
+            && writeBuffer(inputB, valuesB)
+            && writeBuffer(output, initialOutput);
+    }
+
+    bool submitAndWait()
+    {
+        const vk::CommandBuffer commandBuffer = *commandBuffers[0];
+        vk::SubmitInfo submitInfo{};
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+        computeQueue.submit(submitInfo, *fence); // C API: vkQueueSubmit
+
+        const auto result = device.waitForFences(*fence, VK_TRUE, UINT64_MAX); // C API: vkWaitForFences
+        if (result != vk::Result::eSuccess)
+        {
+            device.waitIdle(); // C API: vkDeviceWaitIdle
+            std::cerr << "Fence wait did not complete successfully.\n";
+            return false;
+        }
+        return true;
+    }
+
+    bool verifyOutput(std::uint32_t round)
+    {
+        std::array<float, elementCount> results{};
+        void* mapped = output.memory.mapMemory(0, bufferSize); // C API: vkMapMemory
+        std::memcpy(results.data(), mapped, static_cast<std::size_t>(bufferSize));
+        output.memory.unmapMemory(); // C API: vkUnmapMemory
+
+        for (std::uint32_t i = 0; i < elementCount; ++i)
+        {
+            const float a = static_cast<float>(i + round);
+            const float b = 10.0f + static_cast<float>(i + round);
+            const float expected = a + b;
+            const float tolerance = 1e-5f * (1.0f + std::abs(expected));
+            if (!std::isfinite(results[i]) || std::abs(results[i] - expected) > tolerance)
+            {
+                std::cerr << "Mismatch at " << i << ": expected " << expected
+                          << ", got " << results[i] << '\n';
+                return false;
+            }
+        }
+        std::cout << "Round " << round + 1 << ": verified " << elementCount
+                  << " elements; first=" << results.front() << ", last=" << results.back() << '\n';
+        return true;
+    }
 };
 
 int main()
