@@ -19,7 +19,7 @@ public:
         {
             return false;
         }
-        return true; // TODO: recordCommandBuffer()의 결과를 반환합니다.
+        return recordCommandBuffer();
     }
 
 private:
@@ -27,7 +27,7 @@ private:
 
     static_assert(sizeof(float) == 4);
     static constexpr std::uint32_t elementCount = 8;
-    // TODO: 셰이더와 같은 workgroupSize = 64를 추가합니다.
+    static constexpr std::uint32_t workgroupSize = 64;
     static constexpr vk::DeviceSize bufferSize = sizeof(float) * elementCount;
 
     struct BufferResource
@@ -52,7 +52,8 @@ private:
     vk::raii::ShaderModule shaderModule = nullptr;
     vk::raii::PipelineLayout pipelineLayout = nullptr;
     vk::raii::Pipeline computePipeline = nullptr;
-    // TODO: commandPool, commandBuffers 멤버를 추가합니다.
+    vk::raii::CommandPool commandPool = nullptr;
+    std::vector<vk::raii::CommandBuffer> commandBuffers;
 
     bool initVulkan()
     {
@@ -66,7 +67,9 @@ private:
             && createDescriptorSets()
             && createShaderModule()
             && createPipelineLayout()
-            && createComputePipeline(); // TODO: 풀 생성과 명령 버퍼 할당 호출을 이어 붙입니다.
+            && createComputePipeline()
+            && createCommandPool()
+            && allocateCommandBuffer();
     }
 
     bool checkValidationLayerSupport()
@@ -440,7 +443,52 @@ private:
         std::cout << "Compute pipeline created.\n";
         return true;
     }
-    // TODO: createCommandPool(), allocateCommandBuffer(), recordCommandBuffer()를 추가합니다.
+    bool createCommandPool()
+    {
+        vk::CommandPoolCreateInfo poolInfo{};
+        poolInfo.queueFamilyIndex = computeQueueFamilyIndex;
+        commandPool = vk::raii::CommandPool(device, poolInfo); // C API: vkCreateCommandPool
+        return true;
+    }
+
+    bool allocateCommandBuffer()
+    {
+        vk::CommandBufferAllocateInfo allocInfo{};
+        allocInfo.commandPool = *commandPool;
+        allocInfo.level = vk::CommandBufferLevel::ePrimary;
+        allocInfo.commandBufferCount = 1;
+        commandBuffers = device.allocateCommandBuffers(allocInfo); // C API: vkAllocateCommandBuffers
+        return true;
+    }
+
+    bool recordCommandBuffer()
+    {
+        const std::uint32_t groupCount = (elementCount + workgroupSize - 1) / workgroupSize;
+        const auto limits = physicalDevice.getProperties().limits; // C API: vkGetPhysicalDeviceProperties
+        if (groupCount > limits.maxComputeWorkGroupCount[0])
+        {
+            std::cerr << "Input exceeds device limits.\n";
+            return false;
+        }
+
+        auto& cmd = commandBuffers[0];
+        vk::CommandBufferBeginInfo beginInfo{};
+        cmd.begin(beginInfo); // C API: vkBeginCommandBuffer
+
+        cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *computePipeline); // C API: vkCmdBindPipeline
+        cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *pipelineLayout,
+                               0, *descriptorSets[0], {}); // C API: vkCmdBindDescriptorSets
+
+        const std::uint32_t count = elementCount;
+        cmd.pushConstants<std::uint32_t>(*pipelineLayout, vk::ShaderStageFlagBits::eCompute,
+                                        0, count); // C API: vkCmdPushConstants
+
+        cmd.dispatch(groupCount, 1, 1); // C API: vkCmdDispatch
+
+        cmd.end(); // C API: vkEndCommandBuffer
+        std::cout << "Command buffer recorded: " << groupCount << " workgroups.\n";
+        return true;
+    }
 };
 
 int main()

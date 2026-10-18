@@ -52,7 +52,12 @@ git push     # 작업 끝난 후
 
 ## 현재 위치 (2026-10-18 기준)
 
-**09. Compute pipeline 완료 → 다음: [10. Command buffers](../examples/10-command-buffers/README.md)**
+**10. Command buffers 완료 → 다음: [11. Dispatch와 동기화](../examples/11-dispatch-synchronization/README.md)**
+
+- 10장: `examples/10-command-buffers/main.cpp` 빌드·실행 확인 (`Command buffer recorded: 1 workgroups.` / `Resources destroyed.`, 검증 레이어 경고 없음, Debug 빌드)
+- 10장: TODO 전부(`workgroupSize`, `commandPool`·`commandBuffers` 멤버, `createCommandPool()`·`allocateCommandBuffer()`·`recordCommandBuffer()`, `initVulkan()`·`run()` 연결)를 Claude가 채움 → 코드 읽으며 복습 필요
+- 10장 실행 결과 터미널 캡처 제출하기 (README 요구사항)
+- `cpp_study/10-command-buffers.md` 작성 (command buffer·pool, primary/secondary 표, lifecycle 상태 표)
 
 - 09장: `examples/09-compute-pipeline/main.cpp` 빌드·실행 확인 (`Shader module created: 1720 bytes.` / `Compute pipeline created.` / `Resources destroyed.`, 검증 레이어 경고 없음, Debug 빌드)
 - 09장: `createPipelineLayout()`의 푸시 상수 범위·`layoutInfo`까지는 직접 채움 (오타 `pPushConstatnRanges` → `pPushConstantRanges` 수정). 레이아웃 생성·`return true`, 멤버 2개, `createComputePipeline()` 전체, `initVulkan()` 연결은 Claude가 채움 → 코드 읽으며 복습 필요
@@ -88,13 +93,14 @@ git push     # 작업 끝난 후
 | 07. Descriptor pool과 sets | ✅ | 빌드·실행 확인 (`Descriptor sets updated: 1`). 후반은 Claude가 채움 |
 | 08. Compute shader | ✅ | 빌드·실행 확인 (`Shader module created: 1720 bytes.`). `read()` 이후는 Claude가 채움 |
 | 09. Compute pipeline | ✅ | 빌드·실행 확인 (`Compute pipeline created.`). 레이아웃 생성 이후는 Claude가 채움 |
+| 10. Command buffers | ✅ | 빌드·실행 확인 (`Command buffer recorded: 1 workgroups.`). TODO 전부 Claude가 채움 |
 
 ## 빌드 명령 (Linux)
 
 ```sh
 cd examples/<장 폴더>
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physical_devices, 04: logical_device_example, 05: buffers_memory_example, 06: descriptor_layout_example, 07: descriptor_sets_example, 08: compute_shader_example, 09: compute_pipeline_example
+cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physical_devices, 04: logical_device_example, 05: buffers_memory_example, 06: descriptor_layout_example, 07: descriptor_sets_example, 08: compute_shader_example, 09: compute_pipeline_example, 10: command_buffers_example
 ./build/main
 ```
 
@@ -115,6 +121,7 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 - [06-descriptor-layout.md](06-descriptor-layout.md): descriptor·descriptor set·layout·binding 용어, 누가 무엇을 가지나(버퍼/layout/set/셰이더), layout에 없는 것(버퍼 이름·크기·입출력), 빵 공장·AI 모델 비유, `descriptorCount`, `pXxx`+`xxxCount` 짝 패턴, `static_cast`, 빌드 결과
 - [07-descriptor-sets.md](07-descriptor-sets.md): `*` 구분 팁 (작성 중)
 - [08-compute-shader.md](08-compute-shader.md): `add.comp`(GLSL compute shader), 바깥 반복문 대신 병렬 실행, Invocation·Workgroup(`local_size_x`), 남는 invocation과 범위 검사, CUDA 대응표, push constant, SPIR-V, 8장 요약
+- [10-command-buffers.md](10-command-buffers.md): command buffer·command pool, primary/secondary 레벨 표, command buffer lifecycle(상태 표·다이어그램), `vkCmd*`
 - 그림 정리 (브라우저로 열기): [vulkan-overview.html](vulkan-overview.html) 00~07장 총정리(전체 지도·검증 레이어·큐 패밀리·버퍼/메모리·RAII 정리 순서·C++ 문법 모음), [descriptor-visual.html](descriptor-visual.html) 06·07장 디스크립터 단계별 그림
 
 노트에 아직 정리하지 않은, 대화에서 다룬 주제:
@@ -146,3 +153,4 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 
 - 파이썬은 익숙하고 C++은 처음 배우는 중입니다. 파이썬과 비교하는 설명을 선호합니다.
 - 코드는 README를 보며 직접 채웁니다. 정답 코드를 대신 써 주기보다 문법 설명과 실수 지적을 원합니다.
+- (2026-10-18 10장 대화) 커맨드 버퍼는 기록 후 큐에 submit, `allocateCommandBuffers`가 vector를 반환하는 이유(descriptor set과 같은 구조), primary는 "하나뿐"이 아니라 "큐에 직접 제출 가능"(여러 개 가능, 실행 스크립트 vs import 모듈 비유), begin = recording 상태로 전환(파일 open 비유), 할당 전·`initial`·reset·`invalid` 상태, `vkCmd*` 접두사(기록만 함, vulkan-hpp에선 `cmd.` 멤버 함수), `bindPipeline`의 bind point(`eCompute`/`eGraphics`)·`*computePipeline`(raii에서 핸들 꺼내기), 원소 수를 push constant로 넘기는 이유(64 인보케이션 중 8개만 유효, 원소 수는 배열이 아니라 길이 숫자 하나), dispatch(실제 계산을 일으키는 유일한 명령, 인자는 워크그룹 수, `gl_GlobalInvocationID`), 워크그룹 vs 인보케이션, 실행 결과 해석(제출 전이라 계산 결과 없음), 10장까지 총정리
