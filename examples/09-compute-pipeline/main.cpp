@@ -49,7 +49,8 @@ private:
     vk::raii::DescriptorPool descriptorPool = nullptr;
     std::vector<vk::raii::DescriptorSet> descriptorSets;
     vk::raii::ShaderModule shaderModule = nullptr;
-    // TODO: pipelineLayout, computePipeline 멤버를 추가합니다.
+    vk::raii::PipelineLayout pipelineLayout = nullptr;
+    vk::raii::Pipeline computePipeline = nullptr;
 
     bool initVulkan()
     {
@@ -61,7 +62,9 @@ private:
             && createDescriptorSetLayout()
             && createDescriptorPool()
             && createDescriptorSets()
-            && createShaderModule(); // TODO: 레이아웃과 파이프라인 생성 호출을 이어 붙입니다.
+            && createShaderModule()
+            && createPipelineLayout()
+            && createComputePipeline();
     }
 
     bool checkValidationLayerSupport()
@@ -405,6 +408,39 @@ private:
         return true;
     }
     // TODO: createPipelineLayout(), createComputePipeline() 함수를 추가합니다.
+    bool createPipelineLayout()
+    {
+        vk::PushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = vk::ShaderStageFlagBits::eCompute; // stageFlags = 값을 읽을 셰이더 단계
+        pushConstantRange.offset = 0; // offset = 푸시 상수 영역 안의 시작 바이트
+        pushConstantRange.size = sizeof(std::uint32_t); // size = 사용할 바이트 수
+
+        const vk::DescriptorSetLayout layout = *descriptorSetLayout;
+        vk::PipelineLayoutCreateInfo layoutInfo{};
+        layoutInfo.setLayoutCount = 1;
+        layoutInfo.pSetLayouts = &layout;
+        layoutInfo.pushConstantRangeCount = 1;
+        layoutInfo.pPushConstantRanges = &pushConstantRange;
+
+        pipelineLayout = vk::raii::PipelineLayout(device, layoutInfo); // C API: vkCreatePipelineLayout
+        return true;
+    }
+
+    bool createComputePipeline()
+    {
+        vk::PipelineShaderStageCreateInfo stageInfo{};
+        stageInfo.stage = vk::ShaderStageFlagBits::eCompute; // stage = 셰이더 단계
+        stageInfo.module = *shaderModule; // module = 08장에서 만든 셰이더 모듈의 핸들
+        stageInfo.pName = "main"; // pName = add.comp의 진입 함수 이름
+
+        vk::ComputePipelineCreateInfo pipelineInfo{};
+        pipelineInfo.stage = stageInfo;
+        pipelineInfo.layout = *pipelineLayout;
+
+        computePipeline = vk::raii::Pipeline(device, nullptr, pipelineInfo); // C API: vkCreateComputePipelines
+        std::cout << "Compute pipeline created.\n";
+        return true;
+    }
 };
 
 int main()
