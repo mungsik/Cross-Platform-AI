@@ -48,7 +48,7 @@ git push     # 작업 끝난 후
 4. 호스트 키가 존마다 달라서 경고가 뜨면 `ssh-keygen -R vulkan-tutorial` 후 다시 접속
 5. VM에서 `git pull`
 
-현재(2026-10-17): IP는 b 존에 붙어 있음, 집 Mac `~/.ssh/config`는 b 존으로 바꿈, **회사 컴퓨터 `~/.ssh/config`는 아직 c 존** → 회사에서 접속할 때 3·4번 하기
+현재(2026-10-18): b 존 재고 없어 c 존 사용. IP는 c 존에 붙어 있음, 집 Mac `~/.ssh/config`도 c 존. 회사 컴퓨터는 마지막 설정 존 확인 후 다르면 3·4번 하기
 
 ## 현재 위치 (2026-10-18 기준)
 
@@ -63,7 +63,7 @@ git push     # 작업 끝난 후
 - 08장: `examples/08-compute-shader/main.cpp` 빌드·실행 확인 (`Shader module created: 1720 bytes.`, 검증 레이어 경고 없음, Debug 빌드)
 - 08장: `<fstream>`, `shaderModule` 멤버, `createShaderModule()`의 `seekg(0)`까지는 직접 채움. `read()`부터 모듈 생성·`return true`와 `initVulkan()` 연결은 Claude가 채움 → 코드 읽으며 복습 필요 (`reinterpret_cast<char*>`, `codeSize`는 바이트·`pCode`는 `code.data()`)
 - 08장 실행 결과 터미널 캡처 제출하기 (README 요구사항)
-- VM에 `glslang-tools` 설치함 (VS Code GLSL Lint 확장용 `glslangValidator`). 다른 존 인스턴스에는 없을 수 있음
+- VM에 `glslang-tools` 설치함 (VS Code GLSL Lint 확장용 `glslangValidator`). c 존에도 10-18 설치
 
 - 07장: `examples/07-descriptor-sets/main.cpp` 빌드·실행 확인 (풀 max sets 1 / StorageBuffer 3개, 바인딩 0·1·2가 각각 다른 버퍼 핸들, range 32 bytes, 검증 레이어 경고 없음)
 - 07장: `<vector>`, 멤버, `createDescriptorPool()`은 직접 채움. `createDescriptorSets()` 전체와 `initVulkan()` 연결은 Claude가 채움 → 코드 읽으며 복습 필요 (특히 `pSetLayouts = &layout`, `for (auto& ...)`의 `&`, `pBufferInfo = &bufferInfos[i]`)
