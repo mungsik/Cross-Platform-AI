@@ -25,13 +25,14 @@ git push     # 작업 끝난 후
 - 회사 컴퓨터에 upstream 등록: `git remote add upstream https://github.com/Pseudo-Lab/Cross-Platform-AI.git`
 - 환경(Vulkan SDK, CMake, 컴파일러)은 컴퓨터마다 [00. 환경 설정](../examples/00-env-settings/README.md)을 먼저 확인
 
-## GCP 인스턴스 `vulkan-tutorial` (b·c 존에 하나씩, 2026-10-18 기준 c 사용 중)
+## GCP 인스턴스 `vulkan-tutorial` (b·c 존에 하나씩, 2026-10-21 기준 c 사용 중)
 
 같은 이름의 인스턴스가 b 존(`asia-northeast3-b`)과 c 존(`asia-northeast3-c`)에 하나씩 있습니다. 둘 다 n1-standard-4 + T4이고, T4 재고가 없으면(STOCKOUT) 켜지지 않아서 켜지는 쪽을 씁니다.
 
 - 2026-10-13: b 존 재고 없음 → 스냅샷 `vulkan-tutorial-snap-20261013`으로 c 존에 새로 만듦
 - 2026-10-17: c 존 재고 없음 → b 존 옛 인스턴스를 켜서 사용 (코드는 `git pull`로 최신화)
 - 2026-10-18: c 존 인스턴스에서 09장 작업 (IP·`~/.ssh/config` 상태는 접속할 때 다시 확인)
+- 2026-10-21: c 존 바로 켜짐(재고 있음). 회사 Mac `~/.ssh/config`의 HostKeyAlias·IAP `--zone`을 c 존(ID 2092362161008647458)으로 맞춤. 13장 재빌드·실행 통과 확인
 - **두 디스크는 따로입니다.** push 안 한 파일은 다른 존 인스턴스에 없음 → 작업 끝나면 꼭 push
 
 **존을 바꿀 때 할 일** (켜는 쪽 존 이름으로)
@@ -48,11 +49,15 @@ git push     # 작업 끝난 후
 4. 호스트 키가 존마다 달라서 경고가 뜨면 `ssh-keygen -R vulkan-tutorial` 후 다시 접속
 5. VM에서 `git pull`
 
-현재(2026-10-18): b 존 재고 없어 c 존 사용. IP는 c 존에 붙어 있음, 집 Mac `~/.ssh/config`도 c 존. 회사 컴퓨터는 마지막 설정 존 확인 후 다르면 3·4번 하기
+현재(2026-10-21): c 존 사용. IP는 c 존에 붙어 있음, 집 Mac·회사 Mac `~/.ssh/config` 모두 c 존으로 맞춤
 
-## 현재 위치 (2026-10-18 기준)
+## 현재 위치 (2026-10-21 기준)
 
-**12. Staging buffers 완료 → 다음: [13. Multiple dispatches](../examples/13-multiple-dispatches/README.md)**
+**13. Multiple dispatches 완료 → 공개된 장은 모두 마침. 다음: 남은 숙제 정리 (아래 목록)**
+
+- upstream(main·compute-pipeline-tutorials·vulkan-compute-tutorials 브랜치) 확인 결과 2026-10-21 기준 14장 이상은 아직 없음. 새 장은 `git fetch upstream` 후 브랜치별 `examples/` 확인
+- 13장: `examples/13-multiple-dispatches/main.cpp` 빌드·실행 확인 (`Command buffer recorded: 1 workgroups per dispatch, 2 dispatches.` / `Round 1: verified 8 elements; first=20, last=41` / `Round 2: ... first=23, last=44`, Debug 빌드). 중간 버퍼, 디스크립터 셋 2개, 연속 dispatch 사이 배리어. 스터디 Q&A는 [qna.md](qna.md)
+- 남은 숙제: ① 02장 콜백 마무리 ② 06~13장 실행 결과 터미널 캡처 제출 ③ Claude가 채운 부분(05 후반, 07 후반, 08~12 TODO) 코드 읽으며 복습
 
 - 12장: `examples/12-staging-buffers/main.cpp` 빌드·실행 확인 (Round 1·2 verified, 결과는 11장과 동일, 검증 레이어·동기화 검증 경고 없음, Debug 빌드). `elementCount` 1·65도 임시 복사본으로 통과 확인
 - 12장: TODO 전부(`uploadA`·`uploadB`·`readback`, `createBuffer()` usage·properties 인자, 6개 버퍼 생성, 입력 복사·출력 복사와 배리어 3개, `writeInputs()`·`verifyOutput()` 대상 변경)를 Claude가 채움 → 코드 읽으며 복습 필요
@@ -106,6 +111,7 @@ git push     # 작업 끝난 후
 | 10. Command buffers | ✅ | 빌드·실행 확인 (`Command buffer recorded: 1 workgroups.`). TODO 전부 Claude가 채움 |
 | 11. Dispatch와 동기화 | ✅ | 빌드·실행 확인 (Round 1·2 verified, 첫 GPU 벡터 덧셈). TODO 전부 Claude가 채움 |
 | 12. Staging buffers | ✅ | 빌드·실행 확인 (Round 1·2 verified, DeviceLocal 연산 버퍼 + 업로드·리드백). TODO 전부 Claude가 채움 |
+| 13. Multiple dispatches | ✅ | 빌드·실행 확인 (2 dispatches, Round 1·2 verified). 중간 버퍼·디스크립터 셋 2개·dispatch 사이 배리어 |
 
 ## 빌드 명령 (Linux)
 
@@ -163,7 +169,7 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 
 ## Claude에게 이어서 부탁할 때
 
-> `cpp_study/PROGRESS.md` 읽고 10장 `examples/10-command-buffers` README부터 이어서 도와줘.
+> `cpp_study/PROGRESS.md` 읽고 남은 숙제(02장 마무리, 캡처 제출, 복습)부터 이어서 도와줘. 새 장이 올라왔으면 그것부터.
 
 - 파이썬은 익숙하고 C++은 처음 배우는 중입니다. 파이썬과 비교하는 설명을 선호합니다.
 - 코드는 README를 보며 직접 채웁니다. 정답 코드를 대신 써 주기보다 문법 설명과 실수 지적을 원합니다.
