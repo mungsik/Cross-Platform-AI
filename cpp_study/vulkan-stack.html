@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vulkan 층 구조 그림</title>
+<style>
+:root {
+  --bg: #fafaf7; --surface: #ffffff; --ink: #1d1d1b; --muted: #66645e; --line: #d9d6cc;
+  --app: #2459a8; --app-bg: #e3ecfa;
+  --ldr: #6b4fa3; --ldr-bg: #eee7f8;
+  --val: #8a6d00; --val-bg: #fff6cc;
+  --drv: #2e7d4f; --drv-bg: #e2f2e8;
+  --gpu: #b5651d; --gpu-bg: #fbeedd;
+  --err: #b02a5b; --err-bg: #fbe3ec;
+  --code-bg: #f1efe8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161614; --surface: #201f1c; --ink: #ecebe6; --muted: #a3a097; --line: #3a3832;
+    --app: #7fb0ff; --app-bg: #1b2a42;
+    --ldr: #b9a0f0; --ldr-bg: #2a2340;
+    --val: #f1d36b; --val-bg: #3a3214;
+    --drv: #6fd29a; --drv-bg: #183325;
+    --gpu: #f0a35e; --gpu-bg: #3a2a1a;
+    --err: #f27aa6; --err-bg: #3d1a28;
+    --code-bg: #2a2925;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161614; --surface: #201f1c; --ink: #ecebe6; --muted: #a3a097; --line: #3a3832;
+  --app: #7fb0ff; --app-bg: #1b2a42;
+  --ldr: #b9a0f0; --ldr-bg: #2a2340;
+  --val: #f1d36b; --val-bg: #3a3214;
+  --drv: #6fd29a; --drv-bg: #183325;
+  --gpu: #f0a35e; --gpu-bg: #3a2a1a;
+  --err: #f27aa6; --err-bg: #3d1a28;
+  --code-bg: #2a2925;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+  line-height: 1.65; font-size: 16px;
+}
+main { max-width: 980px; margin: 0 auto; padding: 32px 16px 80px; }
+h1 { font-size: 1.7rem; margin: 0 0 4px; }
+h2 { font-size: 1.25rem; margin: 48px 0 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+h3 { font-size: 1.05rem; margin: 18px 0 6px; }
+p.lead { color: var(--muted); margin: 0 0 24px; }
+code, pre { font-family: "JetBrains Mono", "D2Coding", Menlo, Consolas, monospace; font-size: .88em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 8px 0; line-height: 1.5; }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+.tbl { overflow-x: auto; }
+.chip { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+.stage { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.stage svg { width: 100%; height: auto; display: block; }
+.callout { background: var(--val-bg); border-left: 4px solid var(--val); padding: 10px 14px; border-radius: 6px; margin: 12px 0; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.card h4 { margin: 0 0 6px; font-size: 1rem; }
+.card ul { margin: 0; padding-left: 18px; }
+.card small { color: var(--muted); }
+
+svg text { fill: var(--ink); font-family: inherit; font-size: 14px; }
+svg .muted { fill: var(--muted); font-size: 12px; }
+svg .mono { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 12.5px; }
+svg .ttl { font-weight: 700; font-size: 15px; }
+svg .sm { font-size: 12px; }
+.app-box { fill: var(--app-bg); stroke: var(--app); stroke-width: 2; }
+.ldr-box { fill: var(--ldr-bg); stroke: var(--ldr); stroke-width: 2; }
+.val-box { fill: var(--val-bg); stroke: var(--val); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.drv-box { fill: var(--drv-bg); stroke: var(--drv); stroke-width: 2; }
+.drv-off { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.gpu-box { fill: var(--gpu-bg); stroke: var(--gpu); stroke-width: 2; }
+.gpu-off { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.err-box { fill: var(--err-bg); stroke: var(--err); stroke-width: 2; }
+.dev-box { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 10 6; }
+.lane { fill: var(--surface); stroke: var(--line); stroke-width: 1; }
+.a { stroke: var(--ink); stroke-width: 2; fill: none; marker-end: url(#ah); }
+.a-off { stroke: var(--line); stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+.a-back { stroke: var(--gpu); stroke-width: 2; fill: none; marker-end: url(#ah-gpu); stroke-dasharray: 6 4; }
+.a-err { stroke: var(--err); stroke-width: 2; fill: none; marker-end: url(#ah-err); }
+.t-app { fill: var(--app) !important; } .t-ldr { fill: var(--ldr) !important; }
+.t-val { fill: var(--val) !important; } .t-drv { fill: var(--drv) !important; }
+.t-gpu { fill: var(--gpu) !important; } .t-err { fill: var(--err) !important; }
+.off { fill: var(--muted) !important; }
+.num { fill: var(--surface); font-weight: 700; font-size: 12px; }
+.num-bg { fill: var(--ink); }
+</style>
+</head>
+<body>
+<main>
+<h1>Vulkan은 어디에 있고, 명령은 어떻게 GPU까지 가나</h1>
+<p class="lead">온디바이스(기기 한 대 안에서 모델을 돌리는 상황)를 가정해서, 우리 C++ 코드와 Vulkan, 제조사 드라이버, GPU가 각각 어디에 있고 명령 하나가 어떤 길을 지나 결과가 되는지 그림으로 정리했습니다. 00~07장 객체 관계는 <a href="vulkan-overview.html">총정리</a>, 디스크립터는 <a href="descriptor-visual.html">디스크립터 그림</a>에 있습니다.</p>
+
+<h2>0. 이름부터</h2>
+<div class="tbl"><table>
+<tr><th>이름</th><th>무엇인가</th><th>누가 만드나</th><th>우리 환경에서는</th></tr>
+<tr><td><span class="chip" style="background:var(--app)"></span><b>앱 코드</b></td><td>지금 쓰고 있는 <code>main.cpp</code>. 물어보고, 고르고, 만들고, 기록하고, 제출하는 쪽</td><td>우리</td><td><code>examples/NN-*/main.cpp</code></td></tr>
+<tr><td><span class="chip" style="background:var(--app)"></span><b>SPIR-V</b></td><td>셰이더를 GPU 중립 중간 언어로 컴파일한 것. 파이썬 <code>.pyc</code>와 비슷한 위치</td><td>우리 (<code>glslc</code>로)</td><td><code>add.comp</code> → <code>add.spv</code></td></tr>
+<tr><td><span class="chip" style="background:var(--ldr)"></span><b>Vulkan 로더</b></td><td>앱이 부르는 모든 <code>vk*</code> 함수가 처음 들어가는 곳. 설치된 드라이버를 찾아 호출을 넘김</td><td>Khronos (오픈소스)</td><td><code>libvulkan.so.1</code> (<code>libvulkan-dev</code> 패키지)</td></tr>
+<tr><td><span class="chip" style="background:var(--val)"></span><b>검증 레이어</b></td><td>개발 중에만 끼우는 감시자. 규격 위반을 메시지로 알려 줌. 실행을 막지는 않음</td><td>Khronos</td><td><code>vulkan-validationlayers</code>, 02장 콜백</td></tr>
+<tr><td><span class="chip" style="background:var(--drv)"></span><b>드라이버 (ICD)</b></td><td>Vulkan 규격을 <b>자기 GPU용으로 구현한 것</b>. 제조사마다 하나씩. SPIR-V를 GPU 기계어로 컴파일하는 것도 여기</td><td>NVIDIA, AMD, Intel, 퀄컴, ARM…</td><td><code>nvidia-driver-595</code> 안의 NVIDIA Vulkan ICD</td></tr>
+<tr><td><span class="chip" style="background:var(--gpu)"></span><b>GPU</b></td><td>실제로 계산하는 하드웨어. 제조사마다 기계어가 다름</td><td>제조사</td><td>Tesla T4</td></tr>
+</table></div>
+
+<div class="callout">핵심 한 줄: <b>Vulkan은 프로그램이 아니라 "약속(규격)"</b>입니다. 약속을 지키는 번역기(드라이버)는 제조사가 각자 만들어 자기 GPU 옆에 둡니다. 우리 코드는 약속된 이름으로만 부르고, 로더가 그 호출을 기기에 꽂힌 드라이버로 넘깁니다.</div>
+
+<h2 id="stack">1. 기기 한 대 안의 층 구조</h2>
+<p>기기(노트북, 휴대폰, GCP 인스턴스) 하나를 위에서 아래로 자른 그림입니다. 제조사 칸을 네 개 그렸지만 <b>한 기기에는 보통 하나만 실제로 꽂혀 있고</b>, 로더는 꽂혀 있는 드라이버만 연결합니다. 우리 인스턴스에서는 NVIDIA 칸만 살아 있습니다.</p>
+<div class="stage">
+<svg viewBox="0 0 960 650" role="img" aria-label="앱 코드, 로더, 검증 레이어, 제조사별 드라이버, GPU가 기기 한 대 안에서 위아래로 쌓인 층 구조">
+<defs>
+  <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/></marker>
+  <marker id="ah-gpu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--gpu)"/></marker>
+  <marker id="ah-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--err)"/></marker>
+</defs>
+
+<!-- device outline -->
+<rect x="20" y="20" width="920" height="610" rx="16" class="dev-box"/>
+<text x="40" y="48" class="muted">기기 한 대 (온디바이스): 예) GCP vulkan-tutorial 인스턴스, 휴대폰, 노트북</text>
+
+<!-- app layer -->
+<rect x="60" y="70" width="840" height="110" rx="10" class="app-box"/>
+<text x="80" y="96" class="ttl t-app">① 우리 앱 코드  (CPU에서 실행)</text>
+<rect x="80" y="110" width="300" height="56" rx="8" fill="var(--surface)" stroke="var(--app)" stroke-width="1.2"/>
+<text x="96" y="132" class="mono">main.cpp</text>
+<text x="96" y="152" class="sm">물어보기 → 고르기 → 만들기 → 기록 → 제출</text>
+<rect x="400" y="110" width="220" height="56" rx="8" fill="var(--surface)" stroke="var(--app)" stroke-width="1.2"/>
+<text x="416" y="132" class="mono">add.spv (SPIR-V)</text>
+<text x="416" y="152" class="sm">GPU 중립 중간 언어</text>
+<rect x="640" y="110" width="240" height="56" rx="8" fill="var(--surface)" stroke="var(--app)" stroke-width="1.2"/>
+<text x="656" y="132" class="mono">vulkan.hpp / vk::raii</text>
+<text x="656" y="152" class="sm">C 함수에 씌운 C++ 껍데기 (헤더)</text>
+
+<!-- arrow app -> loader -->
+<path d="M480 180 L480 212" class="a"/>
+<text x="492" y="202" class="sm muted">vkCreateBuffer, vkQueueSubmit … 전부 같은 이름으로 호출</text>
+
+<!-- loader layer -->
+<rect x="60" y="214" width="840" height="70" rx="10" class="ldr-box"/>
+<text x="80" y="240" class="ttl t-ldr">② Vulkan 로더  (libvulkan.so)</text>
+<text x="80" y="264" class="sm">"이 기기에 Vulkan 드라이버가 뭐가 있지?" 하고 찾아서 호출을 그 드라이버로 넘김. 규격은 Khronos가, 구현은 오픈소스</text>
+
+<!-- validation layer (optional) -->
+<rect x="60" y="296" width="840" height="56" rx="10" class="val-box"/>
+<text x="80" y="320" class="ttl t-val">②′ 검증 레이어  (개발 중에만 끼움, 02장)</text>
+<text x="80" y="340" class="sm">호출을 가로채 규격대로 썼는지 검사하고 콜백으로 메시지만 보냄. 통과시키지 막지는 않음. 배포 때는 뺌</text>
+
+<!-- arrows loader -> drivers -->
+<path d="M160 352 L160 392" class="a"/>
+<path d="M380 352 L380 392" class="a-off"/>
+<path d="M600 352 L600 392" class="a-off"/>
+<path d="M820 352 L820 392" class="a-off"/>
+
+<!-- driver layer -->
+<text x="36" y="382" class="muted">③ 드라이버</text>
+<text x="36" y="612" class="muted">③ 드라이버(ICD) = 제조사가 Vulkan 규격을 자기 GPU용으로 구현한 것. SPIR-V → 기계어 컴파일도 여기서. 회색 점선 칸은 이 기기에 없는 것.</text>
+<rect x="70" y="394" width="180" height="76" rx="10" class="drv-box"/>
+<text x="86" y="418" class="ttl t-drv">NVIDIA ICD</text>
+<text x="86" y="438" class="mono">nvidia-driver-595</text>
+<text x="86" y="458" class="sm">이 인스턴스에 꽂힌 것</text>
+
+<rect x="290" y="394" width="180" height="76" rx="10" class="drv-off"/>
+<text x="306" y="418" class="ttl off">AMD ICD</text>
+<text x="306" y="438" class="mono off">RADV / amdvlk</text>
+<text x="306" y="458" class="sm off">이 기기엔 없음</text>
+
+<rect x="510" y="394" width="180" height="76" rx="10" class="drv-off"/>
+<text x="526" y="418" class="ttl off">퀄컴 ICD</text>
+<text x="526" y="438" class="mono off">Adreno 드라이버</text>
+<text x="526" y="458" class="sm off">안드로이드 폰이라면 이것</text>
+
+<rect x="730" y="394" width="160" height="76" rx="10" class="drv-off"/>
+<text x="746" y="418" class="ttl off">Apple 쪽</text>
+<text x="746" y="438" class="mono off">MoltenVK → Metal</text>
+<text x="746" y="458" class="sm off">Mac이라면 이것</text>
+
+<!-- arrows drivers -> gpus -->
+<path d="M160 470 L160 508" class="a"/>
+<path d="M380 470 L380 508" class="a-off"/>
+<path d="M600 470 L600 508" class="a-off"/>
+<path d="M810 470 L810 508" class="a-off"/>
+
+<!-- gpu layer -->
+<rect x="70" y="510" width="180" height="70" rx="10" class="gpu-box"/>
+<text x="86" y="534" class="ttl t-gpu">Tesla T4</text>
+<text x="86" y="554" class="sm">NVIDIA 기계어로 실행</text>
+<text x="86" y="572" class="sm muted">큐 패밀리 5개, VRAM 16GB</text>
+
+<rect x="290" y="510" width="180" height="70" rx="10" class="gpu-off"/>
+<text x="306" y="534" class="ttl off">AMD GPU</text>
+<text x="306" y="554" class="sm off">AMD 기계어</text>
+
+<rect x="510" y="510" width="180" height="70" rx="10" class="gpu-off"/>
+<text x="526" y="534" class="ttl off">Adreno GPU</text>
+<text x="526" y="554" class="sm off">메모리를 CPU와 공유 (UMA)</text>
+
+<rect x="730" y="510" width="160" height="70" rx="10" class="gpu-off"/>
+<text x="746" y="534" class="ttl off">Apple GPU</text>
+<text x="746" y="554" class="sm off">Metal 기계어</text>
+</svg>
+</div>
+
+<div class="cards" style="margin-top:12px">
+<div class="card"><h4><span class="chip" style="background:var(--app)"></span>위 두 층은 어느 기기든 같다</h4><ul><li><code>main.cpp</code> 한 벌</li><li><code>add.spv</code> 한 벌</li><li>호출하는 함수 이름과 인자 형식</li></ul><small>파이썬 비유: DB-API 규격(PEP 249)대로 <code>cursor.execute()</code>만 부르는 코드</small></div>
+<div class="card"><h4><span class="chip" style="background:var(--drv)"></span>아래 두 층은 기기마다 다르다</h4><ul><li>드라이버 구현 (제조사 코드)</li><li>SPIR-V가 번역되는 기계어</li><li>큐 패밀리 번호, 메모리 타입 번호, 한계값</li></ul><small>파이썬 비유: <code>psycopg2</code>냐 <code>sqlite3</code>냐</small></div>
+<div class="card"><h4><span class="chip" style="background:var(--ldr)"></span>로더가 가운데서 이어 준다</h4><ul><li>앱은 드라이버 파일 이름을 모른다</li><li>로더가 설치된 ICD 목록을 읽어 연결</li><li>GPU가 둘이면 03장 "장치 목록"에 둘 다 나옴</li></ul><small>파이썬 비유: 어느 드라이버 모듈을 import할지 골라 주는 자리</small></div>
+</div>
+
+<h2 id="trip">2. 명령 하나의 여행: 벡터 덧셈이 결과가 되기까지</h2>
+<p>11장 <code>a + b</code>를 기준으로, 한 번 실행할 때 각 단계가 <b>어느 층에서</b> 일어나는지 가로줄(레인)로 나눴습니다. 확인하는 일은 전부 우리 코드 레인에 있고, 드라이버와 GPU 레인에는 "시키는 대로 한다"만 있습니다.</p>
+<div class="stage">
+<svg viewBox="0 0 960 560" role="img" aria-label="앱 코드, 로더, 드라이버, GPU 네 레인을 명령이 순서대로 지나가는 흐름도">
+<!-- lanes -->
+<rect x="20" y="20" width="920" height="120" rx="8" class="lane"/>
+<rect x="20" y="150" width="920" height="70" rx="8" class="lane"/>
+<rect x="20" y="230" width="920" height="150" rx="8" class="lane"/>
+<rect x="20" y="390" width="920" height="110" rx="8" class="lane"/>
+<text x="32" y="44" class="ttl t-app">우리 코드 (CPU)</text>
+<text x="32" y="174" class="ttl t-ldr">로더 (+검증 레이어)</text>
+<text x="32" y="254" class="ttl t-drv">NVIDIA 드라이버</text>
+<text x="32" y="414" class="ttl t-gpu">T4</text>
+
+<!-- step 1: query -->
+<rect x="190" y="52" width="150" height="78" rx="8" class="app-box"/>
+<circle cx="204" cy="66" r="9" class="num-bg"/><text x="200" y="70" class="num">1</text>
+<text x="220" y="70" class="sm">물어보기 (03~05장)</text>
+<text x="200" y="92" class="sm">장치 목록, 큐 패밀리,</text>
+<text x="200" y="110" class="sm">메모리 타입, 한계값</text>
+<path d="M265 130 L265 150" class="a"/>
+<path d="M265 220 L265 232" class="a"/>
+<rect x="190" y="268" width="150" height="56" rx="8" class="drv-box"/>
+<text x="200" y="290" class="sm">"T4 기준으로 답함"</text>
+<text x="200" y="310" class="sm muted">큐 패밀리 5개, 타입 N번…</text>
+<path d="M300 268 C330 200, 330 180, 300 130" class="a-back"/>
+<text x="332" y="206" class="sm muted">답</text>
+
+<!-- step 2: choose -->
+<rect x="360" y="52" width="150" height="78" rx="8" class="app-box"/>
+<circle cx="374" cy="66" r="9" class="num-bg"/><text x="370" y="70" class="num">2</text>
+<text x="390" y="70" class="sm">고르기</text>
+<text x="370" y="92" class="sm">컴퓨트 큐 있는 패밀리,</text>
+<text x="370" y="110" class="sm">HostVisible 타입 (코드가 판단)</text>
+
+<!-- step 3: create -->
+<rect x="530" y="52" width="150" height="78" rx="8" class="app-box"/>
+<circle cx="544" cy="66" r="9" class="num-bg"/><text x="540" y="70" class="num">3</text>
+<text x="560" y="70" class="sm">만들기 (04~09장)</text>
+<text x="540" y="92" class="sm">장치, 버퍼, 셰이더 모듈,</text>
+<text x="540" y="110" class="sm">파이프라인</text>
+<path d="M605 130 L605 150" class="a"/>
+<path d="M605 220 L605 232" class="a"/>
+<rect x="530" y="268" width="150" height="96" rx="8" class="drv-box"/>
+<text x="540" y="290" class="sm">버퍼·메모리 실제 확보</text>
+<text x="540" y="310" class="sm"><tspan class="mono">add.spv</tspan> 를</text>
+<text x="540" y="330" class="sm">T4 기계어로 컴파일</text>
+<text x="540" y="352" class="sm muted">못 하면 여기서 에러 코드</text>
+
+<!-- step 4: record + 5: submit -->
+<rect x="700" y="52" width="220" height="78" rx="8" class="app-box"/>
+<circle cx="714" cy="66" r="9" class="num-bg"/><text x="710" y="70" class="num">4</text>
+<text x="730" y="70" class="sm">기록 (10장)  →</text>
+<circle cx="824" cy="66" r="9" class="num-bg"/><text x="820" y="70" class="num">5</text>
+<text x="840" y="70" class="sm">제출 (11장)</text>
+<text x="710" y="92" class="sm">커맨드 버퍼에 적기 (아직 안 돎)</text>
+<text x="710" y="110" class="sm"><tspan class="mono">queue.submit()</tspan> → 줄에 넣기</text>
+<path d="M830 130 L830 150" class="a"/>
+<path d="M830 220 L830 232" class="a"/>
+<rect x="700" y="268" width="220" height="96" rx="8" class="drv-box"/>
+<text x="710" y="290" class="sm">큐에서 꺼내 GPU에 전달</text>
+<text x="710" y="310" class="sm muted">내용은 검사하지 않음</text>
+<text x="710" y="330" class="sm muted">(규격대로 썼다고 믿음)</text>
+<text x="710" y="352" class="sm muted">끝나면 펜스 올림</text>
+<path d="M830 364 L830 392" class="a"/>
+
+<!-- GPU lane -->
+<rect x="700" y="420" width="220" height="68" rx="8" class="gpu-box"/>
+<circle cx="714" cy="434" r="9" class="num-bg"/><text x="710" y="438" class="num">6</text>
+<text x="730" y="438" class="sm">dispatch 실행</text>
+<text x="710" y="460" class="sm">워크그룹 1개 × 64 인보케이션,</text>
+<text x="710" y="478" class="sm"><tspan class="mono">output[i] = a[i] + b[i]</tspan></text>
+
+<!-- result back -->
+<path d="M700 454 C560 454, 520 480, 440 480 L184 480" class="a-back"/>
+<rect x="60" y="420" width="120" height="68" rx="8" class="gpu-box"/>
+<text x="70" y="442" class="sm">output 버퍼에</text>
+<text x="70" y="460" class="sm">결과가 들어 있음</text>
+<text x="70" y="478" class="sm muted">(GPU 메모리)</text>
+
+<!-- step 7: wait + read -->
+<path d="M170 420 L170 134" class="a-back"/>
+<rect x="40" y="52" width="140" height="78" rx="8" class="app-box"/>
+<circle cx="54" cy="66" r="9" class="num-bg"/><text x="50" y="70" class="num">7</text>
+<text x="70" y="70" class="sm">기다리고 읽기</text>
+<text x="50" y="92" class="sm"><tspan class="mono">waitForFences</tspan></text>
+<text x="50" y="110" class="sm"><tspan class="mono">mapMemory</tspan> → CPU 비교</text>
+
+<text x="32" y="530" class="muted">번호 순서: 1 물어보기 → 2 고르기 → 3 만들기 → 4 기록 → 5 제출 → 6 GPU 실행 → 7 기다리고 읽기.  점선 화살표는 아래층에서 위로 돌아오는 답·결과.</text>
+<text x="32" y="550" class="muted">12장은 3과 5 사이에 "업로드 버퍼 → DeviceLocal 복사", 6과 7 사이에 "DeviceLocal → 리드백 복사"가 끼어듭니다. 13장은 6이 두 번(사이에 배리어).</text>
+</svg>
+</div>
+
+<h2 id="same-diff">3. 같은 코드를 다른 기기에 들고 가면</h2>
+<p>온디바이스의 핵심 질문입니다. <code>main.cpp</code>와 <code>add.spv</code>는 그대로 두고 기기만 바꾸면 무엇이 달라지는지 비교했습니다. 달라지는 것은 전부 <b>1번(물어보기)의 답</b>이라서, 코드가 답을 보고 고르도록 짜 두면 같은 코드가 돕니다.</p>
+<div class="tbl"><table>
+<tr><th></th><th>GCP T4 (NVIDIA)</th><th>데스크톱 AMD</th><th>안드로이드 폰 (퀄컴 Adreno)</th><th>Mac (Apple)</th></tr>
+<tr><td><b>앱 코드·SPIR-V</b></td><td colspan="4" style="text-align:center">같음 (한 벌)</td></tr>
+<tr><td><b>로더</b></td><td>libvulkan.so</td><td>libvulkan.so</td><td>안드로이드에 내장</td><td>MoltenVK 패키지에 포함</td></tr>
+<tr><td><b>드라이버</b></td><td>NVIDIA ICD</td><td>RADV 또는 amdvlk</td><td>퀄컴 ICD (펌웨어에 포함)</td><td>MoltenVK (Vulkan → Metal 번역)</td></tr>
+<tr><td><b>컴퓨트 큐 패밀리 번호</b></td><td>조회해서 결정 (T4는 0번도 가능)</td><td>다를 수 있음</td><td>다를 수 있음</td><td>다를 수 있음</td></tr>
+<tr><td><b>HostVisible 메모리 타입 번호</b></td><td>조회해서 결정</td><td>다름</td><td>다름. CPU·GPU 메모리가 하나라 DeviceLocal이면서 HostVisible인 타입이 흔함</td><td>다름 (UMA)</td></tr>
+<tr><td><b>스테이징(12장)이 이득인가</b></td><td>예 (VRAM 분리)</td><td>예</td><td>대개 손해. 직접 map이 더 빠를 수 있음</td><td>대개 손해</td></tr>
+<tr><td><b>한계값</b> (<code>maxStorageBufferRange</code> 등)</td><td>약 4GiB</td><td>다름</td><td>훨씬 작을 수 있음</td><td>다름</td></tr>
+<tr><td><b>SPIR-V → 기계어</b></td><td>NVIDIA 드라이버가 컴파일</td><td>AMD 드라이버가 컴파일</td><td>퀄컴 드라이버가 컴파일</td><td>MoltenVK가 Metal 셰이더로 변환 후 Apple이 컴파일</td></tr>
+</table></div>
+
+<div class="callout">그래서 "Vulkan 호환"의 정확한 뜻은 <b>"어디서나 같은 방법으로 물어볼 수 있고, 답에 맞춰 코드가 고른다"</b>입니다. "어디서나 아무것도 안 바꾸고 똑같이 빠르다"가 아닙니다. 온디바이스 AI 런타임(llama.cpp의 Vulkan 백엔드, ncnn 등)은 이 "물어보고 고르는" 코드가 전체의 큰 부분을 차지합니다.</div>
+
+<h2 id="fail">4. 이 기기에서 "안 되는" 명령은 어디서 걸리나</h2>
+<p>어느 단계에서 걸리느냐에 따라 결과가 세 갈래입니다. 깔끔한 에러는 가운데 갈래 하나뿐이라서, 왼쪽 갈래(코드가 미리 거름)로 가도록 짜는 것이 Vulkan 코드의 기본 습관입니다.</p>
+<div class="stage">
+<svg viewBox="0 0 960 330" role="img" aria-label="조회 단계에서 거르기, 생성 단계에서 예외, 실행 단계에서 오동작의 세 갈래">
+<rect x="20" y="20" width="290" height="290" rx="10" class="app-box"/>
+<text x="36" y="46" class="ttl t-app">A. 1·2번에서 코드가 거른다</text>
+<text x="36" y="72" class="sm">조회 결과에 조건이 없으면</text>
+<text x="36" y="92" class="sm">코드가 스스로 멈춘다</text>
+<rect x="36" y="108" width="258" height="70" rx="6" fill="var(--code-bg)" stroke="none"/>
+<text x="46" y="130" class="mono">if (physicalDevices.empty())</text>
+<text x="46" y="148" class="mono">    return false;   // 03장</text>
+<text x="46" y="166" class="mono">return std::nullopt; // 큐 없음</text>
+<text x="36" y="204" class="sm">→ 메시지 찍고 <tspan class="mono">return 1</tspan></text>
+<text x="36" y="224" class="sm">→ 원인을 우리가 안다</text>
+<text x="36" y="262" class="sm muted">파이썬: <tspan class="mono">if key not in d:</tspan> 먼저 검사</text>
+<text x="36" y="290" class="ttl t-app">가장 좋은 길</text>
+
+<rect x="335" y="20" width="290" height="290" rx="10" class="err-box"/>
+<text x="351" y="46" class="ttl t-err">B. 3번(만들기)에서 드라이버가 거절</text>
+<text x="351" y="72" class="sm">없는 기능·확장을 켜 달라고 하면</text>
+<text x="351" y="92" class="sm">드라이버가 에러 코드를 돌려줌</text>
+<rect x="351" y="108" width="258" height="70" rx="6" fill="var(--code-bg)" stroke="none"/>
+<text x="361" y="130" class="mono">VK_ERROR_FEATURE_NOT_PRESENT</text>
+<text x="361" y="148" class="mono">VK_ERROR_EXTENSION_NOT_PRESENT</text>
+<text x="361" y="166" class="mono">VK_ERROR_OUT_OF_DEVICE_MEMORY</text>
+<text x="351" y="204" class="sm">→ <tspan class="mono">vk::raii</tspan>에서는 C++ 예외로 던져짐</text>
+<text x="351" y="224" class="sm">→ 안 잡으면 그 자리에서 종료</text>
+<text x="351" y="262" class="sm muted">파이썬: <tspan class="mono">KeyError</tspan>가 나는 것</text>
+<text x="351" y="290" class="ttl t-err">에러가 "나는" 유일한 길</text>
+
+<rect x="650" y="20" width="290" height="290" rx="10" class="gpu-box"/>
+<text x="666" y="46" class="ttl t-gpu">C. 5·6번(제출·실행)까지 가면</text>
+<text x="666" y="72" class="sm">드라이버는 커맨드 버퍼 내용을</text>
+<text x="666" y="92" class="sm">검사하지 않고 그냥 실행함</text>
+<rect x="666" y="108" width="258" height="70" rx="6" fill="var(--code-bg)" stroke="none"/>
+<text x="676" y="130" class="sm">· 에러 없이 틀린 값</text>
+<text x="676" y="148" class="sm">· 나중에 <tspan class="mono">VK_ERROR_DEVICE_LOST</tspan></text>
+<text x="676" y="166" class="sm">· 프로그램이 그냥 죽음</text>
+<text x="666" y="204" class="sm">→ 규격 용어로 "정의되지 않은 동작"</text>
+<text x="666" y="224" class="sm">→ 검증 레이어(02장)가 개발 중에 잡아 줌</text>
+<text x="666" y="262" class="sm muted">파이썬엔 없음. C 배열 범위 넘겨 읽기와 비슷</text>
+<text x="666" y="290" class="ttl t-gpu">피해야 하는 길</text>
+</svg>
+</div>
+<p>11장에서 CPU 기준값과 비교하고, <code>VK_VALIDATION_VALIDATE_SYNC=1</code>로 동기화 검증까지 켜서 "경고 없음"을 확인한 것이 C 갈래를 개발 중에 막는 장치입니다. 검증 레이어는 수식의 옳고 그름은 모르므로 기준값 비교가 따로 필요합니다.</p>
+
+<h2 id="py">5. 전체를 파이썬 한 덩어리로</h2>
+<pre><code># 1~2. 물어보고 고르기 (우리 코드의 몫. Vulkan이 대신 안 해 줌)
+devices = vk.list_devices()                        # 로더가 설치된 드라이버에게 물어봄
+gpu = next(d for d in devices if d.has_compute_queue)   # 없으면 StopIteration → A 갈래
+mem_type = next(t for t in gpu.memory_types if t.host_visible)
+
+# 3. 만들기 (드라이버가 실제 자원을 잡고 SPIR-V를 기계어로 컴파일)
+device = gpu.create_device(queue_family=gpu.compute_family)   # 없는 기능 요구 → B 갈래(예외)
+shader = device.create_shader_module(open("add.spv", "rb").read())
+a, b, out = (device.create_buffer(32, mem_type) for _ in range(3))
+
+# 4~5. 기록하고 제출 (내용 검사 없음 → 틀리면 C 갈래)
+cmd = device.record(lambda c: c.dispatch(shader, [a, b, out], workgroups=1))
+fence = device.queue.submit(cmd)        # queue.put(job)과 같은 느낌, 바로 돌아옴
+
+# 6~7. GPU 실행 → 기다리고 읽기
+fence.wait()                            # job.result()
+assert out.read() == [x + y for x, y in zip(a.read(), b.read())]   # 검증 레이어는 수식을 모름
+</code></pre>
+<p>같은 이 코드를 AMD나 휴대폰에서 돌리면 바뀌는 것은 <code>list_devices()</code>가 돌려주는 내용과, 드라이버가 뒤에서 하는 컴파일뿐입니다. 우리 쪽 줄은 한 줄도 안 바뀝니다.</p>
+</main>
+</body>
+</html>

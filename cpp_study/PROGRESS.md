@@ -142,7 +142,7 @@ cmake --build build --target <타깃 이름>   # 01: instance_example, 03: physi
 - [10-command-buffers.md](10-command-buffers.md): command buffer·command pool, primary/secondary 레벨 표, command buffer lifecycle(상태 표·다이어그램), `vkCmd*`
 - [11-dispatch-synchrozation.md](11-dispatch-synchrozation.md): buffer vs command buffer, fence·memory barrier, 동기화가 필요한 이유 (작성 중)
 - [12-staging-buffers.md](12-staging-buffers.md): 스테이징·리드백 버퍼 (작성 중)
-- 그림 정리 (브라우저로 열기): [vulkan-overview.html](vulkan-overview.html) 00~07장 총정리(전체 지도·검증 레이어·큐 패밀리·버퍼/메모리·RAII 정리 순서·C++ 문법 모음), [descriptor-visual.html](descriptor-visual.html) 06·07장 디스크립터 단계별 그림
+- 그림 정리 (브라우저로 열기): [vulkan-overview.html](vulkan-overview.html) 00~07장 총정리(전체 지도·검증 레이어·큐 패밀리·버퍼/메모리·RAII 정리 순서·C++ 문법 모음), [descriptor-visual.html](descriptor-visual.html) 06·07장 디스크립터 단계별 그림, [vulkan-stack.html](vulkan-stack.html) 온디바이스 층 구조(앱·로더·검증 레이어·제조사 드라이버·GPU), 명령 하나의 여행, 기기별로 달라지는 것, 안 될 때 세 갈래
 
 노트에 아직 정리하지 않은, 대화에서 다룬 주제:
 
